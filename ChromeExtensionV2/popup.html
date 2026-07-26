@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 240px;
+      padding: 16px;
+      font-family: system-ui, sans-serif;
+      margin: 0;
+    }
+    label {
+      font-weight: 500;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+      color: #1e293b;
+    }
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #d1d9e6;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fafcff;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    button {
+      width: 100%;
+      padding: 10px 0;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:active {
+      transform: scale(0.96);
+    }
+    #status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #475569;
+      text-align: center;
+      min-height: 1.4em;
+    }
+  </style>
+</head>
+<body>
+  <label for="regionSelect">🌍 Choose region</label>
+  <select id="regionSelect">
+    <option value="asia">Asia</option>
+    <option value="europe">Europe</option>
+    <option value="americas">Americas</option>
+    <option value="africa">Africa</option>
+    <option value="oceania">Oceania</option>
+  </select>
+
+  <button id="fillBtn">✏️ Select & Fill</button>
+  <div id="status">Click button, then click any text box.</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

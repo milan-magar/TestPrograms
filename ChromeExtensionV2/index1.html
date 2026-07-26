@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Single Text Box — History</title>
+    <style>
+        /* Reset + center */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f0f4f8;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            padding: 1.5rem;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 3rem 2.5rem 2.5rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
+            width: 100%;
+            max-width: 520px;
+            text-align: center;
+        }
+
+        h2 {
+            font-weight: 500;
+            font-size: 1.3rem;
+            color: #1e293b;
+            margin-bottom: 1.8rem;
+            letter-spacing: -0.01em;
+        }
+
+        .input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        #textBox {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            font-size: 1.1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 60px;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            background: #fafcff;
+            color: #0f172a;
+        }
+
+        #textBox:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        #textBox::placeholder {
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .hint {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .hint kbd {
+            display: inline-block;
+            background: #eef2f6;
+            padding: 0.1rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid #d1d9e6;
+            color: #1e293b;
+        }
+
+        /* ─── History container ────────────────────────────────── */
+        #history {
+            margin-top: 1.4rem;
+            padding: 0.6rem 0.8rem;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+            min-height: 50px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #0f172a;
+            scroll-behavior: smooth;
+        }
+
+        /* when empty, show placeholder */
+        #history:empty::before {
+            content: "No entries yet — start typing!";
+            display: block;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 0.4rem 0;
+        }
+
+        .entry {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            padding: 0.1rem 0;
+            animation: fadeSlide 0.2s ease;
+        }
+
+        .entry .index {
+            display: inline-block;
+            min-width: 28px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            text-align: right;
+            user-select: none;
+        }
+
+        .entry .text {
+            color: #1e293b;
+        }
+
+        .entry .text::before {
+            content: "·";
+            margin-right: 0.3rem;
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        /* scrollbar */
+        #history::-webkit-scrollbar {
+            width: 5px;
+        }
+        #history::-webkit-scrollbar-track {
+            background: #eef2f6;
+            border-radius: 10px;
+        }
+        #history::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        #history::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @keyframes fadeSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 2rem 1.2rem 1.8rem;
+            }
+            #history {
+                font-size: 0.85rem;
+                max-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>✏️ Type something</h2>
+        <div class="input-wrapper">
+            <input type="text" id="textBox" placeholder="Write here…" autofocus />
+        </div>
+        <div class="hint">
+            Press <kbd>Enter</kbd> to add a new line
+        </div>
+
+        <!-- History of entered lines -->
+        <div id="history"></div>
+    </div>
+
+    <script>
+        (function() {
+            const input = document.getElementById('textBox');
+            const history = document.getElementById('history');
+            let entryCount = 0;
+
+            function addEntry(text) {
+                entryCount++;
+
+                // Create entry element
+                const entry = document.createElement('div');
+                entry.className = 'entry';
+
+                const indexSpan = document.createElement('span');
+                indexSpan.className = 'index';
+                indexSpan.textContent = `#${entryCount}`;
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text';
+                textSpan.textContent = text;
+
+                entry.appendChild(indexSpan);
+                entry.appendChild(textSpan);
+                history.appendChild(entry);
+
+                // Auto-scroll to the bottom
+                history.scrollTop = history.scrollHeight;
+            }
+
+            // Handle Enter key
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const value = this.value.trim();
+                    if (value === '') {
+                        // Optionally show a quick feedback; we'll ignore empty submissions
+                        return;
+                    }
+
+                    // Add the entry
+                    addEntry(value);
+
+                    // Clear the input for the next entry
+                    this.value = '';
+                }
+            });
+
+            // Focus the input on load
+            input.focus();
+        })();
+    </script>
+</body>
+</html>

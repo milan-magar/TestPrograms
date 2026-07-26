@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Click Counter</title>
+    <style>
+        /* ── reset & base ── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 3rem 2.5rem 2.5rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 28px 56px -16px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.01em;
+        }
+
+        .sub {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ── button ── */
+        .btn {
+            background: #2563eb;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.9rem 2.8rem;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.35);
+            letter-spacing: 0.3px;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+            box-shadow: 0 12px 28px -8px rgba(37, 99, 235, 0.45);
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            background: #1e40af;
+        }
+
+        /* ── divider ── */
+        .divider {
+            margin: 2rem 0 1.2rem;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            border-radius: 4px;
+        }
+
+        /* ── log container ── */
+        .log-container {
+            min-height: 60px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding: 0.25rem 0.1rem;
+            text-align: left;
+            font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #0f172a;
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid #eef2f6;
+            scroll-behavior: smooth;
+        }
+
+        .log-container .log-entry {
+            opacity: 0;
+            animation: fadeSlide 0.25s ease forwards;
+            padding: 0.05rem 0;
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+        }
+
+        .log-container .log-entry .index-badge {
+            display: inline-block;
+            min-width: 28px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            letter-spacing: 0.02em;
+            text-align: right;
+            user-select: none;
+        }
+
+        .log-container .log-entry .message {
+            color: #1e293b;
+        }
+
+        .log-container .log-entry .message::before {
+            content: "·";
+            margin-right: 0.3rem;
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        .log-container:empty::after {
+            content: "No clicks yet";
+            color: #94a3b8;
+            font-family: system-ui, sans-serif;
+            font-size: 0.9rem;
+            display: block;
+            text-align: center;
+            padding: 0.6rem 0;
+        }
+
+        /* ── scrollbar styling ── */
+        .log-container::-webkit-scrollbar {
+            width: 5px;
+        }
+        .log-container::-webkit-scrollbar-track {
+            background: #eef2f6;
+            border-radius: 10px;
+        }
+        .log-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* ── animation ── */
+        @keyframes fadeSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── responsive ── */
+        @media (max-width: 480px) {
+            .card {
+                padding: 2rem 1.2rem 1.8rem;
+            }
+            .btn {
+                font-size: 1rem;
+                padding: 0.75rem 2rem;
+                width: 100%;
+            }
+            .log-container {
+                font-size: 0.85rem;
+                padding: 0.6rem 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🖱️ Click Logger</h1>
+        <p class="sub">Each click adds a new line below</p>
+
+        <button class="btn" id="clickBtn">Click me</button>
+
+        <div class="divider"></div>
+
+        <!-- log output -->
+        <div class="log-container" id="logContainer"></div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ─── DOM refs ──────────────────────────────────────────
+            const button = document.getElementById('clickBtn');
+            const logContainer = document.getElementById('logContainer');
+
+            // ─── state ─────────────────────────────────────────────
+            let clickCount = 0;
+
+            // ─── helper: create a log entry ──────────────────────
+            function createLogEntry(index) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+
+                // index badge
+                const badge = document.createElement('span');
+                badge.className = 'index-badge';
+                badge.textContent = `#${index}`;
+
+                // message span
+                const msg = document.createElement('span');
+                msg.className = 'message';
+                msg.textContent = 'clicked';
+
+                entry.appendChild(badge);
+                entry.appendChild(msg);
+
+                return entry;
+            }
+
+            // ─── handler ──────────────────────────────────────────
+            function handleClick() {
+                clickCount += 1;
+
+                // 1) build new entry
+                const entry = createLogEntry(clickCount);
+
+                // 2) append to container
+                logContainer.appendChild(entry);
+
+                // 3) auto-scroll to the bottom so the newest line is visible
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+
+            // ─── wire up ──────────────────────────────────────────
+            button.addEventListener('click', handleClick);
+
+            // (optional) keyboard accessibility: Enter/Space on button works natively
+            // but we keep it clean.
+
+            console.log('✅ Click Logger ready — each click adds a new "clicked" line.');
+        })();
+    </script>
+
+</body>
+</html>
