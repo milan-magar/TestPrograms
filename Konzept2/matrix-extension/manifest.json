@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "3×3 Matrix Filler",
+  "version": "1.0",
+  "description": "Select a rectangle, server computes 9 centers, fills inputs.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Fill Matrix"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

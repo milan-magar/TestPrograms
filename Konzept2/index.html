@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3x3 Matrix – no spacing</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #141824;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 1.5rem;
+        }
+
+        .container {
+            background: #1e2332;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        /* ── the matrix: zero gap ── */
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            max-width: 360px;
+            margin: 0 auto;
+        }
+
+        .matrix input {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            /* perfect square */
+            background: #181d2a;
+            border: 1.5px solid #2e3448;
+            border-radius: 0;
+            /* sharp corners */
+            color: #eef2ff;
+            font-size: 1.5rem;
+            font-weight: 500;
+            text-align: center;
+            outline: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            padding: 0;
+            min-width: 0;
+            min-height: 0;
+            box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* remove double borders by overlapping */
+        .matrix input:not(:nth-child(3n)) {
+            border-right-width: 0.75px;
+        }
+        .matrix input:not(:nth-child(n+7)) {
+            border-bottom-width: 0.75px;
+        }
+
+        /* hover & focus */
+        .matrix input:hover {
+            background: #1e2538;
+            border-color: #4a5270;
+            z-index: 2;
+            position: relative;
+        }
+
+        .matrix input:focus {
+            background: #1a1f2e;
+            border-color: #7c8aff;
+            box-shadow: 0 0 0 2px rgba(124, 138, 255, 0.25), inset 0 1px 4px rgba(0, 0, 0, 0.4);
+            z-index: 3;
+            position: relative;
+        }
+
+        .matrix input::placeholder {
+            color: #2d3448;
+            font-weight: 300;
+            font-size: 0.9rem;
+        }
+
+        /* outer border of the whole matrix */
+        .matrix {
+            border: 1.5px solid #2e3448;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* responsive: shrink on small screens */
+        @media (max-width: 420px) {
+            .matrix {
+                max-width: 280px;
+            }
+            .matrix input {
+                font-size: 1.2rem;
+            }
+            .matrix input::placeholder {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .matrix {
+                max-width: 220px;
+            }
+            .matrix input {
+                font-size: 1rem;
+            }
+            .container {
+                padding: 0.3rem;
+            }
+        }
+
+        /* hint text */
+        .hint {
+            text-align: center;
+            color: #4a5270;
+            font-size: 0.7rem;
+            letter-spacing: 0.06em;
+            margin-top: 1rem;
+            font-weight: 400;
+            opacity: 0.6;
+        }
+        .hint span {
+            background: #1a1f2e;
+            padding: 0.2rem 0.9rem;
+            border-radius: 2rem;
+            border: 1px solid #2a3044;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="matrix">
+            <input type="text" placeholder=" " id="c1" />
+            <input type="text" placeholder=" " id="c2" />
+            <input type="text" placeholder=" " id="c3" />
+            <input type="text" placeholder=" " id="c4" />
+            <input type="text" placeholder=" " id="c5" />
+            <input type="text" placeholder=" " id="c6" />
+            <input type="text" placeholder=" " id="c7" />
+            <input type="text" placeholder=" " id="c8" />
+            <input type="text" placeholder=" " id="c9" />
+        </div>
+        <div class="hint"><span>✦ 3×3 · no spacing</span></div>
+    </div>
+
+    <script>
+        (function() {
+            const inputs = document.querySelectorAll('.matrix input');
+
+            // Escape → clear focused cell
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const active = document.activeElement;
+                    if (active && active.tagName === 'INPUT' && active.closest('.matrix')) {
+                        active.value = '';
+                        e.preventDefault();
+                    }
+                }
+            });
+
+            // auto‑focus first cell
+            if (inputs.length) inputs[0].focus();
+
+            // arrow‑key navigation (matrix style)
+            inputs.forEach((input, index) => {
+                input.addEventListener('keydown', (e) => {
+                    const row = Math.floor(index / 3);
+                    const col = index % 3;
+                    let target = -1;
+
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            if (row > 0) target = index - 3;
+                            e.preventDefault();
+                            break;
+                        case 'ArrowDown':
+                            if (row < 2) target = index + 3;
+                            e.preventDefault();
+                            break;
+                        case 'ArrowLeft':
+                            if (col > 0) target = index - 1;
+                            e.preventDefault();
+                            break;
+                        case 'ArrowRight':
+                            if (col < 2) target = index + 1;
+                            e.preventDefault();
+                            break;
+                        default:
+                            return;
+                    }
+
+                    if (target >= 0 && target < inputs.length) {
+                        inputs[target].focus();
+                        inputs[target].select();
+                    }
+                });
+            });
+        })();
+    </script>
+
+</body>
+</html>
