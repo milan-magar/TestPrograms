@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Price Simulator · Live Chart</title>
+    <style>
+        /* ─── reset & base ─── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f5fb;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.02);
+            padding: 28px 32px 36px;
+            max-width: 960px;
+            width: 100%;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.03);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-bottom: 18px;
+        }
+
+        .title-group h1 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0b1a2e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title-group h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #5b6f87;
+        }
+
+        .title-group .sub {
+            font-size: 14px;
+            color: #6b7f99;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .title-group .sub .badge {
+            background: #eef3f9;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #2c4a6e;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #3a4f68;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .controls input[type="number"] {
+            width: 58px;
+            padding: 6px 8px;
+            border: 1.5px solid #d7e0e9;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            background: #f8faff;
+            color: #0b1a2e;
+            transition: border 0.15s;
+            outline: none;
+        }
+
+        .controls input[type="number"]:focus {
+            border-color: #4a8ed9;
+            box-shadow: 0 0 0 3px rgba(74, 142, 217, 0.12);
+        }
+
+        .controls input[type="number"].small {
+            width: 70px;
+        }
+
+        .btn {
+            background: #1d2b3f;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.18s, transform 0.08s, box-shadow 0.18s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #2a3d56;
+            box-shadow: 0 4px 14px rgba(29, 43, 63, 0.18);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn.danger {
+            background: #b64a4a;
+        }
+        .btn.danger:hover {
+            background: #9e3d3d;
+        }
+        .btn.success {
+            background: #2d8f5c;
+        }
+        .btn.success:hover {
+            background: #237a4c;
+        }
+
+        .btn .icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #eaf0f6;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 800 / 480;
+            background: #ffffff;
+            cursor: crosshair;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 16px;
+            margin-top: 18px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 18px 28px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #3f566e;
+        }
+
+        .stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stats .num {
+            font-weight: 600;
+            color: #0b1a2e;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stats .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 2px;
+        }
+
+        .dot.green {
+            background: #00a859;
+        }
+        .dot.red {
+            background: #e84141;
+        }
+        .dot.gray {
+            background: #b0c4db;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #3f566e;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-item .swatch {
+            width: 20px;
+            height: 3px;
+            border-radius: 4px;
+        }
+
+        .swatch.up {
+            background: #00a859;
+        }
+        .swatch.down {
+            background: #e84141;
+        }
+        .swatch.ref {
+            background: #b0c4db;
+            border: 1px dashed #8aa3c0;
+            height: 0;
+            border-top: 2px dashed #8aa3c0;
+            width: 20px;
+        }
+
+        .status-badge {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 3px 12px;
+            border-radius: 20px;
+            background: #e8edf4;
+            color: #3a4f68;
+        }
+
+        .status-badge.playing {
+            background: #d4edda;
+            color: #1d6e46;
+        }
+
+        /* ─── tooltip ─── */
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: #0b1a2e;
+            color: #f0f6fe;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+            opacity: 0;
+            transition: opacity 0.15s;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip .label {
+            font-weight: 400;
+            color: #b8cee8;
+        }
+
+        /* ─── responsive ─── */
+        @media (max-width: 680px) {
+            .card {
+                padding: 20px 16px 24px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .title-group h1 {
+                font-size: 22px;
+            }
+            .controls {
+                justify-content: flex-start;
+            }
+            .controls label {
+                font-size: 12px;
+            }
+            .footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .stats {
+                justify-content: space-between;
+                font-size: 12px;
+                gap: 6px 14px;
+            }
+            .legend {
+                font-size: 12px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .stats {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .legend {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <!-- header -->
+        <div class="header">
+            <div class="title-group">
+                <h1>
+                    📈 Stock Simulator
+                    <small>live price</small>
+                </h1>
+                <div class="sub">
+                    <span>random walk · continuous scrolling</span>
+                    <span class="badge" id="statusBadge">⏸ paused</span>
+                </div>
+            </div>
+            <div class="controls">
+                <label>
+                    delay (ms)
+                    <input type="number" id="intervalInput" value="1000" min="200" max="5000" step="100" class="small" />
+                </label>
+                <label>
+                    window
+                    <input type="number" id="maxPointsInput" value="80" min="4" max="150" />
+                </label>
+                <button class="btn success" id="playBtn"><span class="icon">▶</span> Play</button>
+                <button class="btn" id="generateBtn"><span class="icon">⟳</span> Reset</button>
+            </div>
+        </div>
+
+        <!-- canvas -->
+        <div class="canvas-wrapper">
+            <canvas id="graph" width="800" height="480"></canvas>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <!-- footer -->
+        <div class="footer">
+            <div class="stats">
+                <span>
+                    <span class="dot green"></span>
+                    points
+                    <span class="num" id="pointCountDisplay">0</span>
+                </span>
+                <span>
+                    time range
+                    <span class="num" id="rangeDisplay">0 … 0</span>
+                </span>
+                <span>
+                    price range
+                    <span class="num" id="priceRangeDisplay">–</span>
+                </span>
+                <span>
+                    <span class="dot gray"></span>
+                    updates
+                    <span class="num" id="updateCountDisplay">0</span>
+                </span>
+            </div>
+            <div class="legend">
+                <span class="legend-item">
+                    <span class="swatch up"></span> up
+                </span>
+                <span class="legend-item">
+                    <span class="swatch down"></span> down
+                </span>
+                <span class="legend-item">
+                    <span class="swatch ref"></span> moving average
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── DOM refs ──────────────────────────────────────────────
+            const canvas = document.getElementById('graph');
+            const ctx = canvas.getContext('2d');
+            const tooltip = document.getElementById('tooltip');
+            const pointCountInput = document.getElementById('maxPointsInput');
+            const intervalInput = document.getElementById('intervalInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const playBtn = document.getElementById('playBtn');
+            const pointCountDisplay = document.getElementById('pointCountDisplay');
+            const rangeDisplay = document.getElementById('rangeDisplay');
+            const priceRangeDisplay = document.getElementById('priceRangeDisplay');
+            const updateCountDisplay = document.getElementById('updateCountDisplay');
+            const statusBadge = document.getElementById('statusBadge');
+
+            // ─── constants ────────────────────────────────────────────
+            const W = 800,
+                H = 480;
+            const PAD = { top: 32, right: 36, bottom: 44, left: 52 };
+            const PLOT_W = W - PAD.left - PAD.right;
+            const PLOT_H = H - PAD.top - PAD.bottom;
+
+            const GREEN = '#00a859';
+            const GREEN_FILL = 'rgba(0, 168, 89, 0.15)';
+            const RED = '#e84141';
+            const RED_FILL = 'rgba(232, 65, 65, 0.15)';
+            const MOVING_AVG_COLOR = '#8aa3c0';
+
+            // ─── state ────────────────────────────────────────────────
+            let data = []; // [{ t, price }]
+            let maxPoints = 80;
+            let intervalDelay = 1000;
+            let isPlaying = false;
+            let autoIntervalId = null;
+            let updateCounter = 0;
+            let timeCounter = 0;
+
+            // Stock parameters
+            const INITIAL_PRICE = 100;
+            const DRIFT = 0.0002;      // small upward drift per step
+            const VOLATILITY = 0.015;   // ~1.5% daily volatility
+
+            // ─── helpers ──────────────────────────────────────────────
+            function randNormal() {
+                // Box-Muller transform
+                let u = 0,
+                    v = 0;
+                while (u === 0) u = Math.random();
+                while (v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+
+            function lerp(a, b, t) { return a + (b - a) * t; }
+
+            // ─── generate next price ──────────────────────────────────
+            function nextPrice(prev) {
+                const ret = DRIFT + VOLATILITY * randNormal();
+                return Math.max(prev * (1 + ret), 0.01); // price can't go negative
+            }
+
+            // ─── generate initial data ──────────────────────────────
+            function generateInitialData(count) {
+                const pts = [];
+                let price = INITIAL_PRICE;
+                for (let i = 0; i < count; i++) {
+                    pts.push({ t: i, price: price });
+                    if (i < count - 1) {
+                        price = nextPrice(price);
+                    }
+                }
+                timeCounter = count - 1;
+                return pts;
+            }
+
+            // ─── add a point and trim ─────────────────────────────────
+            function addPointAndTrim() {
+                timeCounter++;
+                const prevPrice = data[data.length - 1].price;
+                const newPrice = nextPrice(prevPrice);
+                data.push({ t: timeCounter, price: newPrice });
+                if (data.length > maxPoints) {
+                    data.shift();
+                }
+                updateCounter++;
+            }
+
+            // ─── compute moving average (simple) ─────────────────────
+            function computeMovingAverage(pts, window = 5) {
+                if (pts.length < window) return [];
+                const result = [];
+                for (let i = 0; i < pts.length; i++) {
+                    if (i < window - 1) {
+                        result.push(null);
+                    } else {
+                        let sum = 0;
+                        for (let j = i - window + 1; j <= i; j++) {
+                            sum += pts[j].price;
+                        }
+                        result.push(sum / window);
+                    }
+                }
+                return result;
+            }
+
+            // ─── mapping: data → canvas ──────────────────────────────
+            function toCanvasX(x, xMin, xMax) {
+                if (xMin === xMax) return PAD.left + PLOT_W / 2;
+                const t = (x - xMin) / (xMax - xMin);
+                return PAD.left + t * PLOT_W;
+            }
+
+            function toCanvasY(y, yMin, yMax) {
+                if (yMin === yMax) return PAD.top + PLOT_H / 2;
+                const t = (y - yMin) / (yMax - yMin);
+                return PAD.top + PLOT_H - t * PLOT_H;
+            }
+
+            // ─── draw ──────────────────────────────────────────────────
+            function draw(pts, highlightIndex = -1) {
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
+
+                if (pts.length === 0) {
+                    ctx.fillStyle = '#b0c4db';
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('No data — press Reset or Play', W / 2, H / 2);
+                    return;
+                }
+
+                // ── determine ranges ──
+                const xMin = pts[0].t;
+                const xMax = pts[pts.length - 1].t;
+                const range = xMax - xMin;
+
+                let yMin = Infinity,
+                    yMax = -Infinity;
+                for (const p of pts) {
+                    if (p.price < yMin) yMin = p.price;
+                    if (p.price > yMax) yMax = p.price;
+                }
+                const padding = (yMax - yMin) * 0.08 || 1;
+                yMin = Math.max(yMin - padding, 0);
+                yMax = yMax + padding;
+
+                // ── grid ──
+                ctx.save();
+                let xTickStep = 1;
+                if (range > 20) xTickStep = 5;
+                if (range > 80) xTickStep = 10;
+                if (range > 200) xTickStep = 25;
+                if (range > 500) xTickStep = 50;
+                const target = range / 8;
+                const magnitudes = [1, 2, 5, 10, 20, 50, 100];
+                let best = magnitudes[0];
+                for (const m of magnitudes) {
+                    if (target / m >= 0.8) best = m;
+                    else break;
+                }
+                xTickStep = best;
+
+                ctx.strokeStyle = '#e8eef5';
+                ctx.lineWidth = 0.8;
+
+                let firstTick = Math.ceil(xMin / xTickStep) * xTickStep;
+                for (let t = firstTick; t <= xMax; t += xTickStep) {
+                    const cx = toCanvasX(t, xMin, xMax);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, PAD.top);
+                    ctx.lineTo(cx, H - PAD.bottom);
+                    ctx.stroke();
+                }
+
+                const yTicks = 6;
+                for (let i = 0; i <= yTicks; i++) {
+                    const t = i / yTicks;
+                    const y = lerp(yMin, yMax, t);
+                    const cy = toCanvasY(y, yMin, yMax);
+                    ctx.beginPath();
+                    ctx.moveTo(PAD.left, cy);
+                    ctx.lineTo(W - PAD.right, cy);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // ── axes ──
+                ctx.save();
+                ctx.strokeStyle = '#2c3f57';
+                ctx.lineWidth = 1.6;
+
+                const y0 = toCanvasY(0, yMin, yMax);
+                ctx.beginPath();
+                ctx.moveTo(PAD.left, y0);
+                ctx.lineTo(W - PAD.right + 8, y0);
+                ctx.stroke();
+
+                const xAxisY = H - PAD.bottom;
+                ctx.beginPath();
+                ctx.moveTo(PAD.left, xAxisY);
+                ctx.lineTo(W - PAD.right + 8, xAxisY);
+                ctx.stroke();
+
+                ctx.fillStyle = '#2c3f57';
+                ctx.beginPath();
+                ctx.moveTo(W - PAD.right + 8, y0);
+                ctx.lineTo(W - PAD.right, y0 - 4);
+                ctx.lineTo(W - PAD.right, y0 + 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(W - PAD.right + 8, xAxisY);
+                ctx.lineTo(W - PAD.right, xAxisY - 4);
+                ctx.lineTo(W - PAD.right, xAxisY + 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#1f3349';
+                ctx.font = '13px Inter, -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText('time (steps)', W / 2, H - 16);
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('price', PAD.left - 28, PAD.top + 4);
+
+                ctx.font = '11px Inter, -apple-system, sans-serif';
+                ctx.fillStyle = '#4d657f';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                let tick = firstTick;
+                while (tick <= xMax) {
+                    const cx = toCanvasX(tick, xMin, xMax);
+                    ctx.fillText(tick.toString(), cx, xAxisY + 6);
+                    tick += xTickStep;
+                }
+
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                for (let i = 0; i <= yTicks; i++) {
+                    const t = i / yTicks;
+                    const y = lerp(yMin, yMax, t);
+                    const cy = toCanvasY(y, yMin, yMax);
+                    ctx.fillText(y.toFixed(2), PAD.left - 10, cy);
+                }
+                ctx.restore();
+
+                // ── AREA FILL (under the price line) ──
+                // We'll fill the area from the line to the bottom of the chart
+                // using the color of each segment (green if price went up, red if down)
+                const bottomY = PAD.top + PLOT_H;
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const isUp = p2.price >= p1.price;
+                    const color = isUp ? GREEN_FILL : RED_FILL;
+
+                    const c1x = toCanvasX(p1.t, xMin, xMax);
+                    const c1y = toCanvasY(p1.price, yMin, yMax);
+                    const c2x = toCanvasX(p2.t, xMin, xMax);
+                    const c2y = toCanvasY(p2.price, yMin, yMax);
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(c1x, c1y);
+                    ctx.lineTo(c2x, c2y);
+                    ctx.lineTo(c2x, bottomY);
+                    ctx.lineTo(c1x, bottomY);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // ── MOVING AVERAGE (dashed line) ──
+                const maWindow = Math.min(5, pts.length);
+                const ma = computeMovingAverage(pts, maWindow);
+                ctx.save();
+                ctx.strokeStyle = MOVING_AVG_COLOR;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                let started = false;
+                for (let i = 0; i < ma.length; i++) {
+                    if (ma[i] === null) continue;
+                    const cx = toCanvasX(pts[i].t, xMin, xMax);
+                    const cy = toCanvasY(ma[i], yMin, yMax);
+                    if (!started) {
+                        ctx.moveTo(cx, cy);
+                        started = true;
+                    } else {
+                        ctx.lineTo(cx, cy);
+                    }
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                // ── LINE STROKES (colored segments) ──
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const isUp = p2.price >= p1.price;
+                    const color = isUp ? GREEN : RED;
+
+                    const c1x = toCanvasX(p1.t, xMin, xMax);
+                    const c1y = toCanvasY(p1.price, yMin, yMax);
+                    const c2x = toCanvasX(p2.t, xMin, xMax);
+                    const c2y = toCanvasY(p2.price, yMin, yMax);
+
+                    ctx.save();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2.8;
+                    ctx.lineJoin = 'round';
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = isUp ? 'rgba(0,168,89,0.15)' : 'rgba(232,65,65,0.15)';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(c1x, c1y);
+                    ctx.lineTo(c2x, c2y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // ── POINTS ──
+                for (let i = 0; i < pts.length; i++) {
+                    const cx = toCanvasX(pts[i].t, xMin, xMax);
+                    const cy = toCanvasY(pts[i].price, yMin, yMax);
+                    const isHighlight = (i === highlightIndex);
+                    const isUp = (i > 0) ? pts[i].price >= pts[i - 1].price : true;
+                    const color = isUp ? GREEN : RED;
+
+                    if (isHighlight) {
+                        ctx.save();
+                        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
+                        const col = color;
+                        grad.addColorStop(0, col + '60');
+                        grad.addColorStop(1, col + '00');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    const radius = isHighlight ? 7 : 4.5;
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // ── annotation: current price ──
+                if (pts.length > 0) {
+                    ctx.save();
+                    ctx.font = '12px Inter, -apple-system, sans-serif';
+                    ctx.fillStyle = '#2a4a6a';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    const last = pts[pts.length - 1];
+                    const cLast = toCanvasX(last.t, xMin, xMax);
+                    ctx.fillText('$' + last.price.toFixed(2), cLast - 4, PAD.top - 4);
+                    ctx.restore();
+                }
+            }
+
+            // ─── update UI stats ──────────────────────────────────────
+            function updateStats(pts) {
+                pointCountDisplay.textContent = pts.length;
+                if (pts.length === 0) {
+                    rangeDisplay.textContent = '—';
+                    priceRangeDisplay.textContent = '—';
+                    return;
+                }
+                const minT = pts[0].t;
+                const maxT = pts[pts.length - 1].t;
+                rangeDisplay.textContent = minT + ' … ' + maxT;
+
+                let minP = Infinity,
+                    maxP = -Infinity;
+                for (const p of pts) {
+                    if (p.price < minP) minP = p.price;
+                    if (p.price > maxP) maxP = p.price;
+                }
+                priceRangeDisplay.textContent = minP.toFixed(2) + ' … ' + maxP.toFixed(2);
+                updateCountDisplay.textContent = updateCounter;
+            }
+
+            // ─── render ──────────────────────────────────────────────
+            function render(highlightIndex = -1) {
+                draw(data, highlightIndex);
+                updateStats(data);
+            }
+
+            // ─── step forward ──────────────────────────────────────────
+            function stepForward() {
+                addPointAndTrim();
+                render(-1);
+            }
+
+            // ─── reset ─────────────────────────────────────────────────
+            function resetData() {
+                let max = parseInt(pointCountInput.value, 10);
+                if (isNaN(max) || max < 2) max = 2;
+                if (max > 150) max = 150;
+                pointCountInput.value = max;
+                maxPoints = max;
+
+                data = generateInitialData(maxPoints);
+                updateCounter = 0;
+                render(-1);
+            }
+
+            // ─── play / pause ──────────────────────────────────────────
+            function togglePlay() {
+                if (isPlaying) {
+                    clearInterval(autoIntervalId);
+                    autoIntervalId = null;
+                    isPlaying = false;
+                    playBtn.innerHTML = '<span class="icon">▶</span> Play';
+                    playBtn.className = 'btn success';
+                    statusBadge.textContent = '⏸ paused';
+                    statusBadge.className = 'status-badge';
+                } else {
+                    const delay = parseInt(intervalInput.value, 10);
+                    if (isNaN(delay) || delay < 100) {
+                        intervalInput.value = 1000;
+                        intervalDelay = 1000;
+                    } else {
+                        intervalDelay = Math.min(5000, Math.max(100, delay));
+                        intervalInput.value = intervalDelay;
+                    }
+                    if (data.length < 2) {
+                        resetData();
+                    }
+                    autoIntervalId = setInterval(stepForward, intervalDelay);
+                    isPlaying = true;
+                    playBtn.innerHTML = '<span class="icon">⏸</span> Pause';
+                    playBtn.className = 'btn danger';
+                    statusBadge.textContent = '▶ playing';
+                    statusBadge.className = 'status-badge playing';
+                }
+            }
+
+            // ─── tooltip ──────────────────────────────────────────────
+            let hoveredIndex = -1;
+
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+                return { mx, my };
+            }
+
+            function findClosestPoint(mx, my) {
+                if (data.length === 0) return -1;
+                const xMin = data[0].t;
+                const xMax = data[data.length - 1].t;
+                let yMin = Infinity,
+                    yMax = -Infinity;
+                for (const p of data) {
+                    if (p.price < yMin) yMin = p.price;
+                    if (p.price > yMax) yMax = p.price;
+                }
+                const padding = (yMax - yMin) * 0.08 || 1;
+                yMin = Math.max(yMin - padding, 0);
+                yMax = yMax + padding;
+
+                let bestIdx = -1;
+                let bestDist = Infinity;
+                const threshold = 32;
+                for (let i = 0; i < data.length; i++) {
+                    const cx = toCanvasX(data[i].t, xMin, xMax);
+                    const cy = toCanvasY(data[i].price, yMin, yMax);
+                    const dx = cx - mx;
+                    const dy = cy - my;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestIdx = i;
+                    }
+                }
+                return (bestDist < threshold) ? bestIdx : -1;
+            }
+
+            function showTooltip(e, idx) {
+                if (idx < 0 || idx >= data.length) {
+                    tooltip.classList.remove('visible');
+                    return;
+                }
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const p = data[idx];
+                const xMin = data[0].t;
+                const xMax = data[data.length - 1].t;
+                let yMin = Infinity,
+                    yMax = -Infinity;
+                for (const p2 of data) {
+                    if (p2.price < yMin) yMin = p2.price;
+                    if (p2.price > yMax) yMax = p2.price;
+                }
+                const padding = (yMax - yMin) * 0.08 || 1;
+                yMin = Math.max(yMin - padding, 0);
+                yMax = yMax + padding;
+
+                const cx = toCanvasX(p.t, xMin, xMax);
+                const cy = toCanvasY(p.price, yMin, yMax);
+
+                const cssX = (cx / scaleX) + rect.left;
+                const cssY = (cy / scaleY) + rect.top - 12;
+
+                tooltip.innerHTML =
+                    `<span class="label">time</span> = ${p.t} &nbsp;·&nbsp; <span class="label">price</span> = $${p.price.toFixed(2)}`;
+                tooltip.style.left = cssX + 'px';
+                tooltip.style.top = (cssY - 32) + 'px';
+                tooltip.style.transform = 'translateX(-50%)';
+                tooltip.classList.add('visible');
+            }
+
+            // ─── canvas events ────────────────────────────────────────
+            canvas.addEventListener('mousemove', (e) => {
+                const { mx, my } = getMousePos(e);
+                const idx = findClosestPoint(mx, my);
+                if (idx !== hoveredIndex) {
+                    hoveredIndex = idx;
+                    render(idx);
+                }
+                showTooltip(e, idx);
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                hoveredIndex = -1;
+                render(-1);
+                tooltip.classList.remove('visible');
+            });
+
+            // ─── button events ────────────────────────────────────────
+            generateBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    clearInterval(autoIntervalId);
+                    autoIntervalId = null;
+                    isPlaying = false;
+                    playBtn.innerHTML = '<span class="icon">▶</span> Play';
+                    playBtn.className = 'btn success';
+                    statusBadge.textContent = '⏸ paused';
+                    statusBadge.className = 'status-badge';
+                }
+                resetData();
+            });
+
+            playBtn.addEventListener('click', togglePlay);
+
+            pointCountInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (isPlaying) togglePlay();
+                    resetData();
+                }
+            });
+
+            intervalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (isPlaying) {
+                        clearInterval(autoIntervalId);
+                        const delay = parseInt(intervalInput.value, 10);
+                        if (!isNaN(delay) && delay >= 100) {
+                            intervalDelay = Math.min(5000, Math.max(100, delay));
+                            intervalInput.value = intervalDelay;
+                            autoIntervalId = setInterval(stepForward, intervalDelay);
+                        } else {
+                            intervalInput.value = intervalDelay;
+                        }
+                    } else {
+                        const delay = parseInt(intervalInput.value, 10);
+                        if (!isNaN(delay) && delay >= 100) {
+                            intervalDelay = Math.min(5000, Math.max(100, delay));
+                            intervalInput.value = intervalDelay;
+                        } else {
+                            intervalInput.value = intervalDelay;
+                        }
+                    }
+                }
+            });
+
+            // ─── init ──────────────────────────────────────────────────
+            resetData();
+
+        })();
+    </script>
+</body>
+</html>

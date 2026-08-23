@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarketStack Dashboard (3‑day refresh)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0e14;
+            color: #c8d6e5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .dashboard {
+            max-width: 1200px;
+            width: 100%;
+            background: #0f131a;
+            border-radius: 20px;
+            padding: 28px 32px 32px;
+            border: 1px solid #1e2633;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+        .subhead {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #1c2533;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+        .subhead .info {
+            font-size: 13px;
+            color: #6d7f96;
+        }
+        .subhead .info strong {
+            color: #b0c4db;
+        }
+        .badge {
+            background: #1a2332;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 11px;
+            color: #8a9bb0;
+            border: 1px solid #253040;
+        }
+        .status {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            background: #0c1018;
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 1px solid #1a2332;
+        }
+        .status .item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .status .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #4a6a8a;
+        }
+        .status .value {
+            font-weight: 500;
+            color: #eef3fa;
+        }
+        .status .value.green {
+            color: #2ecc71;
+        }
+        .status .value.yellow {
+            color: #f9ca24;
+        }
+        .status .value.red {
+            color: #ef5350;
+        }
+        .refresh-btn {
+            background: #1a2a3a;
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+        .refresh-btn:hover {
+            background: #2ecc71;
+            color: #0b0e14;
+        }
+        .refresh-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #5a6a7e;
+            color: #5a6a7e;
+            background: transparent;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px;
+            margin-top: 12px;
+        }
+        .card {
+            background: #0c1018;
+            border: 1px solid #1a2332;
+            border-radius: 14px;
+            padding: 18px 16px 16px;
+            transition: border-color 0.2s;
+        }
+        .card:hover {
+            border-color: #2a3a4e;
+        }
+        .card .symbol {
+            font-size: 18px;
+            font-weight: 600;
+            color: #eef3fa;
+            letter-spacing: -0.01em;
+        }
+        .card .price {
+            font-size: 26px;
+            font-weight: 500;
+            color: #eef3fa;
+            margin-top: 4px;
+        }
+        .card .change {
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .card .change.positive {
+            color: #2ecc71;
+        }
+        .card .change.negative {
+            color: #ef5350;
+        }
+        .card .details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #6d7f96;
+            border-top: 1px solid #141e2a;
+            padding-top: 10px;
+        }
+        .card .details span {
+            display: flex;
+            flex-direction: column;
+        }
+        .card .details .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #4a6a8a;
+        }
+        .card .details .val {
+            color: #b0c4db;
+            font-weight: 500;
+        }
+        .error {
+            background: #2a1515;
+            border: 1px solid #ef5350;
+            color: #ef5350;
+            padding: 12px 18px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+        .footer {
+            margin-top: 28px;
+            font-size: 11px;
+            color: #3a4a5e;
+            border-top: 1px solid #1c2533;
+            padding-top: 16px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .dashboard { padding: 16px; }
+            .subhead { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .status { flex-direction: column; gap: 6px; }
+            .refresh-btn { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>📈 MarketStack Dashboard</h1>
+        <div class="subhead">
+            <span class="info"><strong>Data updated</strong> <span id="lastUpdate">never</span></span>
+            <span class="badge">🔄 every 3 days</span>
+        </div>
+
+        <div id="errorBox" class="error"></div>
+
+        <div class="status">
+            <div class="item">
+                <span class="label">Cache status</span>
+                <span class="value" id="cacheStatus">—</span>
+            </div>
+            <div class="item">
+                <span class="label">Next scheduled update</span>
+                <span class="value" id="nextUpdate">—</span>
+            </div>
+            <div class="item">
+                <span class="label">Requests remaining (API)</span>
+                <span class="value" id="requestsLeft">—</span>
+            </div>
+            <button class="refresh-btn" id="refreshBtn">🔄 Refresh now</button>
+        </div>
+
+        <div id="stockGrid" class="grid">
+            <!-- Cards will be injected here -->
+        </div>
+
+        <div class="footer">
+            ⚠️ API key included for demo – replace with your own and consider using a backend proxy for production.
+        </div>
+    </div>
+
+    <script>
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CONFIGURATION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const API_KEY = 'a3423c30116226bd0a85fb8394dc1f3d';
+        const SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA'];
+        const BASE_URL = 'https://api.markstack.com/v2/eod';
+        const THREE_DAYS_MS = 3 * 24 * 3600 * 1000;
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  STORAGE HELPERS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function saveData(data, headers) {
+            const payload = {
+                data: data,
+                timestamp: Date.now(),
+                date: new Date().toISOString(),
+                rateLimit: {
+                    limit: headers['x-ratelimit-limit'],
+                    remaining: headers['x-ratelimit-remaining'],
+                    reset: headers['x-ratelimit-reset']
+                }
+            };
+            localStorage.setItem('marketData', JSON.stringify(payload));
+        }
+
+        function loadData() {
+            const raw = localStorage.getItem('marketData');
+            if (!raw) return null;
+            try {
+                return JSON.parse(raw);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  FETCH LOGIC
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function fetchMarketData() {
+            const url = `${BASE_URL}?access_key=${API_KEY}&symbols=${SYMBOLS.join(',')}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const json = await response.json();
+            if (json.error) {
+                throw new Error(json.error.message || 'Unknown API error');
+            }
+            const headers = {
+                'x-ratelimit-limit': response.headers.get('x-ratelimit-limit'),
+                'x-ratelimit-remaining': response.headers.get('x-ratelimit-remaining'),
+                'x-ratelimit-reset': response.headers.get('x-ratelimit-reset')
+            };
+            return { data: json.data, headers };
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  UI UPDATE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function renderCards(data) {
+            const grid = document.getElementById('stockGrid');
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px 0; color:#5a6a7e;">No data available.</div>';
+                return;
+            }
+            grid.innerHTML = '';
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                const change = item.close - item.open;
+                const changePercent = ((change / item.open) * 100).toFixed(2);
+                const sign = change >= 0 ? '+' : '';
+                const cls = change >= 0 ? 'positive' : 'negative';
+                card.innerHTML = `
+                    <div>
+                        <span class="symbol">${item.symbol}</span>
+                        <span class="change ${cls}">${sign}${changePercent}%</span>
+                    </div>
+                    <div class="price">$${item.close.toFixed(2)}</div>
+                    <div class="details">
+                        <span><span class="label">Open</span><span class="val">$${item.open.toFixed(2)}</span></span>
+                        <span><span class="label">High</span><span class="val">$${item.high.toFixed(2)}</span></span>
+                        <span><span class="label">Low</span><span class="val">$${item.low.toFixed(2)}</span></span>
+                        <span><span class="label">Volume</span><span class="val">${(item.volume / 1e6).toFixed(1)}M</span></span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function updateStatus(cached) {
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            const cacheStatusEl = document.getElementById('cacheStatus');
+            const nextUpdateEl = document.getElementById('nextUpdate');
+            const requestsLeftEl = document.getElementById('requestsLeft');
+
+            if (cached) {
+                const date = new Date(cached.timestamp);
+                lastUpdateEl.textContent = date.toLocaleString();
+                cacheStatusEl.textContent = `Cached (${Math.round((Date.now() - cached.timestamp) / 86400000)} days old)`;
+                cacheStatusEl.className = 'value green';
+
+                if (cached.rateLimit && cached.rateLimit.remaining !== null) {
+                    const remaining = parseInt(cached.rateLimit.remaining, 10);
+                    requestsLeftEl.textContent = remaining;
+                    requestsLeftEl.className = remaining > 10 ? 'value green' : (remaining > 0 ? 'value yellow' : 'value red');
+                } else {
+                    requestsLeftEl.textContent = 'unknown';
+                    requestsLeftEl.className = 'value';
+                }
+
+                // Next update: 3 days from last fetch
+                const nextFetch = new Date(cached.timestamp + THREE_DAYS_MS);
+                const diff = nextFetch - Date.now();
+                if (diff > 0) {
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    nextUpdateEl.textContent = `${days}d ${hours}h`;
+                } else {
+                    nextUpdateEl.textContent = 'ready (fetching soon)';
+                }
+            } else {
+                lastUpdateEl.textContent = 'never';
+                cacheStatusEl.textContent = 'No cache';
+                cacheStatusEl.className = 'value red';
+                requestsLeftEl.textContent = '—';
+                requestsLeftEl.className = 'value';
+                nextUpdateEl.textContent = '—';
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorBox');
+            el.textContent = msg;
+            el.className = 'error show';
+        }
+
+        function hideError() {
+            document.getElementById('errorBox').className = 'error';
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  MAIN UPDATE FUNCTION (every 3 days)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        async function updateData(force = false) {
+            hideError();
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            try {
+                const cached = loadData();
+                let shouldFetch = force;
+                if (!cached) {
+                    shouldFetch = true;
+                } else {
+                    const age = Date.now() - cached.timestamp;
+                    if (age >= THREE_DAYS_MS) {
+                        shouldFetch = true;
+                    }
+                }
+
+                // If we have cached rate-limit info and remaining is 0, block fetch
+                if (shouldFetch && cached && cached.rateLimit) {
+                    const remaining = parseInt(cached.rateLimit.remaining, 10);
+                    if (remaining <= 0) {
+                        throw new Error('Monthly request limit reached according to API headers. Please wait until reset.');
+                    }
+                }
+
+                if (shouldFetch) {
+                    const result = await fetchMarketData();
+                    if (!result.data || result.data.length === 0) {
+                        throw new Error('No data returned from API');
+                    }
+                    saveData(result.data, result.headers);
+                    renderCards(result.data);
+                    updateStatus(loadData());
+                } else {
+                    if (cached) {
+                        renderCards(cached.data);
+                        updateStatus(cached);
+                    } else {
+                        throw new Error('No cached data and fetch not triggered; please refresh manually.');
+                    }
+                }
+            } catch (err) {
+                showError(err.message);
+                const cached = loadData();
+                if (cached) {
+                    renderCards(cached.data);
+                    updateStatus(cached);
+                }
+            } finally {
+                refreshBtn.disabled = false;
+                updateStatus(loadData());
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  INIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                updateData(true);
+            });
+
+            updateData(false);
+
+            // Check every 30 minutes if we need to update (age >= 3 days)
+            setInterval(() => {
+                const cached = loadData();
+                if (!cached) {
+                    updateData(false);
+                } else {
+                    const age = Date.now() - cached.timestamp;
+                    if (age >= THREE_DAYS_MS) {
+                        updateData(false);
+                    } else {
+                        // Just refresh UI
+                        renderCards(cached.data);
+                        updateStatus(cached);
+                    }
+                }
+            }, 30 * 60 * 1000);
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    const cached = loadData();
+                    if (cached) {
+                        renderCards(cached.data);
+                        updateStatus(cached);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

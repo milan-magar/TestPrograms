@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User‑defined Equation · Stock Market Style</title>
+    <style>
+        /* ─── reset & base ─── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f5fb;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.02);
+            padding: 28px 32px 36px;
+            max-width: 960px;
+            width: 100%;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.03);
+        }
+
+        /* ─── header ─── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-bottom: 18px;
+        }
+
+        .title-group h1 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #0b1a2e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .title-group h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #5b6f87;
+            word-break: break-all;
+        }
+
+        .title-group .sub {
+            font-size: 14px;
+            color: #6b7f99;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .title-group .sub .badge {
+            background: #eef3f9;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #2c4a6e;
+            font-weight: 500;
+        }
+
+        .title-group .sub .badge.even {
+            background: #d4edda;
+            color: #1d6e46;
+        }
+
+        .title-group .sub .badge.odd {
+            background: #f8d7da;
+            color: #9e3d3d;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #3a4f68;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .controls input[type="number"] {
+            width: 58px;
+            padding: 6px 8px;
+            border: 1.5px solid #d7e0e9;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            background: #f8faff;
+            color: #0b1a2e;
+            transition: border 0.15s;
+            outline: none;
+        }
+
+        .controls input[type="number"]:focus {
+            border-color: #4a8ed9;
+            box-shadow: 0 0 0 3px rgba(74, 142, 217, 0.12);
+        }
+
+        .controls input[type="number"].small {
+            width: 70px;
+        }
+
+        .controls input[type="text"] {
+            padding: 6px 10px;
+            border: 1.5px solid #d7e0e9;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f8faff;
+            color: #0b1a2e;
+            transition: border 0.15s;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            width: 160px;
+        }
+
+        .controls input[type="text"]:focus {
+            border-color: #4a8ed9;
+            box-shadow: 0 0 0 3px rgba(74, 142, 217, 0.12);
+        }
+
+        .controls select {
+            padding: 6px 10px;
+            border: 1.5px solid #d7e0e9;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #f8faff;
+            color: #0b1a2e;
+            outline: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            max-width: 140px;
+        }
+
+        .controls select:focus {
+            border-color: #4a8ed9;
+            box-shadow: 0 0 0 3px rgba(74, 142, 217, 0.12);
+        }
+
+        .btn {
+            background: #1d2b3f;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.18s, transform 0.08s, box-shadow 0.18s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #2a3d56;
+            box-shadow: 0 4px 14px rgba(29, 43, 63, 0.18);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn.primary {
+            background: #2b6bb0;
+        }
+        .btn.primary:hover {
+            background: #1f5a9a;
+        }
+        .btn.danger {
+            background: #b64a4a;
+        }
+        .btn.danger:hover {
+            background: #9e3d3d;
+        }
+        .btn.success {
+            background: #2d8f5c;
+        }
+        .btn.success:hover {
+            background: #237a4c;
+        }
+
+        .btn .icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        /* ─── canvas wrapper ─── */
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #eaf0f6;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 800 / 480;
+            background: #ffffff;
+            cursor: crosshair;
+        }
+
+        /* ─── footer / stats ─── */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 16px;
+            margin-top: 18px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 18px 28px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #3f566e;
+        }
+
+        .stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stats .num {
+            font-weight: 600;
+            color: #0b1a2e;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stats .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 2px;
+        }
+
+        .dot.blue {
+            background: #2b6bb0;
+        }
+        .dot.gray {
+            background: #b0c4db;
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #3f566e;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-item .swatch {
+            width: 20px;
+            height: 3px;
+            border-radius: 4px;
+        }
+
+        .swatch.line-pos {
+            background: #00a859;
+        }
+        .swatch.line-neg {
+            background: #e84141;
+        }
+        .swatch.ref {
+            background: #b0c4db;
+            border: 1px dashed #8aa3c0;
+            height: 0;
+            border-top: 2px dashed #8aa3c0;
+            width: 20px;
+        }
+
+        .status-badge {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 3px 12px;
+            border-radius: 20px;
+            background: #e8edf4;
+            color: #3a4f68;
+        }
+
+        .status-badge.playing {
+            background: #d4edda;
+            color: #1d6e46;
+        }
+
+        /* ─── tooltip ─── */
+        .tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: #0b1a2e;
+            color: #f0f6fe;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+            opacity: 0;
+            transition: opacity 0.15s;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.01em;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .tooltip .label {
+            font-weight: 400;
+            color: #b8cee8;
+        }
+
+        /* ─── responsive ─── */
+        @media (max-width: 680px) {
+            .card {
+                padding: 20px 16px 24px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .title-group h1 {
+                font-size: 22px;
+                flex-wrap: wrap;
+            }
+            .controls {
+                justify-content: flex-start;
+            }
+            .controls label {
+                font-size: 12px;
+            }
+            .controls input[type="text"] {
+                width: 120px;
+            }
+            .controls select {
+                max-width: 100px;
+            }
+            .footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .stats {
+                justify-content: space-between;
+                font-size: 12px;
+                gap: 6px 14px;
+            }
+            .legend {
+                font-size: 12px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .stats {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .legend {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <!-- header -->
+        <div class="header">
+            <div class="title-group">
+                <h1>
+                    <span id="functionTitle">f(x) = Math.sin(x)</span>
+                    <small>user‑defined</small>
+                </h1>
+                <div class="sub">
+                    <span>continuous scrolling · red / green areas</span>
+                    <span class="badge" id="biasDisplay">Day 0 (Neutral)</span>
+                    <span class="badge" id="statusBadge">⏸ paused</span>
+                </div>
+            </div>
+            <div class="controls">
+                <label>
+                    f(x) =
+                    <select id="equationSelect">
+                        <option value="Math.sin(x)">sin(x)</option>
+                        <option value="Math.cos(x)">cos(x)</option>
+                        <option value="x*x">x²</option>
+                        <option value="x*x*x">x³</option>
+                        <option value="Math.sin(x)+Math.cos(x)">sin+cos</option>
+                        <option value="Math.abs(x)">|x|</option>
+                        <option value="Math.tan(x)">tan(x)</option>
+                        <option value="Math.exp(-x*x)">e⁻ˣ²</option>
+                        <option value="1/(1+Math.exp(-x))">sigmoid</option>
+                    </select>
+                </label>
+                <input type="text" id="equationInput" value="Math.sin(x)" style="width:140px;" />
+                <button class="btn primary" id="applyEqBtn">Apply</button>
+                <label>
+                    delay (ms)
+                    <input type="number" id="intervalInput" value="1000" min="200" max="5000" step="100" class="small" />
+                </label>
+                <label>
+                    window
+                    <input type="number" id="maxPointsInput" value="60" min="4" max="120" />
+                </label>
+                <button class="btn success" id="playBtn"><span class="icon">▶</span> Play</button>
+                <button class="btn" id="generateBtn"><span class="icon">⟳</span> Reset</button>
+            </div>
+        </div>
+
+        <!-- canvas -->
+        <div class="canvas-wrapper">
+            <canvas id="graph" width="800" height="480"></canvas>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <!-- footer -->
+        <div class="footer">
+            <div class="stats">
+                <span>
+                    <span class="dot blue"></span>
+                    points
+                    <span class="num" id="pointCountDisplay">0</span>
+                </span>
+                <span>
+                    time range
+                    <span class="num" id="rangeDisplay">0 … 0</span>
+                </span>
+                <span>
+                    f(x) range
+                    <span class="num" id="sinRangeDisplay">–1.00 … 1.00</span>
+                </span>
+                <span>
+                    <span class="dot gray"></span>
+                    updates
+                    <span class="num" id="updateCountDisplay">0</span>
+                </span>
+            </div>
+            <div class="legend">
+                <span class="legend-item">
+                    <span class="swatch line-pos"></span> positive
+                </span>
+                <span class="legend-item">
+                    <span class="swatch line-neg"></span> negative
+                </span>
+                <span class="legend-item">
+                    <span class="swatch ref"></span> reference
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── DOM refs ──────────────────────────────────────────────
+            const canvas = document.getElementById('graph');
+            const ctx = canvas.getContext('2d');
+            const tooltip = document.getElementById('tooltip');
+            const pointCountInput = document.getElementById('maxPointsInput');
+            const intervalInput = document.getElementById('intervalInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const playBtn = document.getElementById('playBtn');
+            const applyEqBtn = document.getElementById('applyEqBtn');
+            const equationInput = document.getElementById('equationInput');
+            const equationSelect = document.getElementById('equationSelect');
+            const functionTitle = document.getElementById('functionTitle');
+            const pointCountDisplay = document.getElementById('pointCountDisplay');
+            const rangeDisplay = document.getElementById('rangeDisplay');
+            const sinRangeDisplay = document.getElementById('sinRangeDisplay');
+            const updateCountDisplay = document.getElementById('updateCountDisplay');
+            const statusBadge = document.getElementById('statusBadge');
+            const biasDisplay = document.getElementById('biasDisplay');
+
+            // ─── constants ────────────────────────────────────────────
+            const W = 800,
+                H = 480;
+            const PAD = { top: 32, right: 36, bottom: 44, left: 52 };
+            const PLOT_W = W - PAD.left - PAD.right;
+            const PLOT_H = H - PAD.top - PAD.bottom;
+
+            const Y_MIN = -1.2;
+            const Y_MAX = 1.2;
+
+            const GREEN = '#00a859';
+            const GREEN_FILL = 'rgba(0, 168, 89, 0.15)';
+            const RED = '#e84141';
+            const RED_FILL = 'rgba(232, 65, 65, 0.15)';
+
+            // ─── state ────────────────────────────────────────────────
+            let data = []; // [{ t, y }]  t = time step, y = f(random)
+            let maxPoints = 60;
+            let intervalDelay = 1000;
+            let isPlaying = false;
+            let autoIntervalId = null;
+            let updateCounter = 0;
+            let timeCounter = 0;
+
+            let userEquation = 'Math.sin(x)'; // default
+            let evalFn = null; // compiled function
+
+            // ─── helpers ──────────────────────────────────────────────
+            function rand(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function lerp(a, b, t) { return a + (b - a) * t; }
+
+            // ─── equation compiler ────────────────────────────────────
+            function compileEquation(expr) {
+                try {
+                    const fn = new Function('x', `return (${expr});`);
+                    const test = fn(0);
+                    if (typeof test !== 'number' || !isFinite(test)) {
+                        throw new Error('Invalid output');
+                    }
+                    return fn;
+                } catch (e) {
+                    console.warn('Invalid equation, falling back to Math.sin(x)', e);
+                    return new Function('x', 'return Math.sin(x);');
+                }
+            }
+
+            // ─── bias logic (40% bias) ──────────────────────────────
+            function getBiasedRandom() {
+                const date = new Date();
+                const day = date.getDate();
+                const isEven = day % 2 === 0;
+                const biasStrength = 0.40;
+
+                if (Math.random() < biasStrength) {
+                    if (isEven) {
+                        return rand(0, Math.PI);
+                    } else {
+                        return rand(-Math.PI, 0);
+                    }
+                } else {
+                    return rand(-2 * Math.PI, 2 * Math.PI);
+                }
+            }
+
+            function evaluateEquation(x) {
+                if (!evalFn) {
+                    evalFn = compileEquation(userEquation);
+                }
+                try {
+                    const val = evalFn(x);
+                    return (typeof val === 'number' && isFinite(val)) ? val : 0;
+                } catch (e) {
+                    return 0;
+                }
+            }
+
+            function updateBiasDisplay() {
+                const date = new Date();
+                const day = date.getDate();
+                const isEven = day % 2 === 0;
+                const biasText = isEven ? '📈 Positive' : '📉 Negative';
+                const cssClass = isEven ? 'even' : 'odd';
+                biasDisplay.textContent = `Day ${day} (${biasText})`;
+                biasDisplay.className = `badge ${cssClass}`;
+            }
+
+            function updateTitle() {
+                const displayEq = userEquation.length > 30 ? userEquation.slice(0, 28) + '…' : userEquation;
+                functionTitle.textContent = `f(x) = ${displayEq}`;
+            }
+
+            // ─── mapping: data → canvas ──────────────────────────────
+            function toCanvasX(x, xMin, xMax) {
+                if (xMin === xMax) return PAD.left + PLOT_W / 2;
+                const t = (x - xMin) / (xMax - xMin);
+                return PAD.left + t * PLOT_W;
+            }
+
+            function toCanvasY(y) {
+                const t = (y - Y_MIN) / (Y_MAX - Y_MIN);
+                return PAD.top + PLOT_H - t * PLOT_H;
+            }
+
+            // ─── generate initial data ──────────────────────────────
+            function generateInitialData(count) {
+                const pts = [];
+                for (let i = 0; i < count; i++) {
+                    const x = getBiasedRandom();
+                    const y = evaluateEquation(x);
+                    pts.push({ t: i, y: y });
+                }
+                timeCounter = count - 1;
+                return pts;
+            }
+
+            // ─── add a point and trim ─────────────────────────────────
+            function addPointAndTrim() {
+                timeCounter++;
+                const x = getBiasedRandom();
+                const y = evaluateEquation(x);
+                data.push({ t: timeCounter, y: y });
+                if (data.length > maxPoints) {
+                    data.shift();
+                }
+                updateCounter++;
+            }
+
+            // ─── draw ──────────────────────────────────────────────────
+            function draw(pts, highlightIndex = -1) {
+                ctx.clearRect(0, 0, W, H);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
+
+                if (pts.length === 0) {
+                    ctx.fillStyle = '#b0c4db';
+                    ctx.font = '16px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('No data — press Reset or Play', W / 2, H / 2);
+                    return;
+                }
+
+                const xMin = pts[0].t;
+                const xMax = pts[pts.length - 1].t;
+                const range = xMax - xMin;
+
+                // ── grid ──
+                ctx.save();
+                let xTickStep = 1;
+                if (range > 20) xTickStep = 5;
+                if (range > 80) xTickStep = 10;
+                if (range > 200) xTickStep = 25;
+                if (range > 500) xTickStep = 50;
+                const target = range / 8;
+                const magnitudes = [1, 2, 5, 10, 20, 50, 100];
+                let best = magnitudes[0];
+                for (const m of magnitudes) {
+                    if (target / m >= 0.8) best = m;
+                    else break;
+                }
+                xTickStep = best;
+
+                ctx.strokeStyle = '#e8eef5';
+                ctx.lineWidth = 0.8;
+
+                let firstTick = Math.ceil(xMin / xTickStep) * xTickStep;
+                for (let t = firstTick; t <= xMax; t += xTickStep) {
+                    const cx = toCanvasX(t, xMin, xMax);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, PAD.top);
+                    ctx.lineTo(cx, H - PAD.bottom);
+                    ctx.stroke();
+                }
+
+                const yTicks = 6;
+                for (let i = 0; i <= yTicks; i++) {
+                    const t = i / yTicks;
+                    const y = lerp(Y_MIN, Y_MAX, t);
+                    const cy = toCanvasY(y);
+                    ctx.beginPath();
+                    ctx.moveTo(PAD.left, cy);
+                    ctx.lineTo(W - PAD.right, cy);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // ── reference lines ──
+                ctx.save();
+                ctx.strokeStyle = '#b8cfe0';
+                ctx.lineWidth = 1.0;
+                ctx.setLineDash([3, 5]);
+                ctx.globalAlpha = 0.5;
+                for (const refY of [-1, 1]) {
+                    const cy = toCanvasY(refY);
+                    ctx.beginPath();
+                    ctx.moveTo(PAD.left, cy);
+                    ctx.lineTo(W - PAD.right, cy);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                const zeroY = toCanvasY(0);
+
+                // ── AREA FILL ──
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const y1 = p1.y;
+                    const y2 = p2.y;
+                    const isPos1 = y1 >= 0;
+                    const isPos2 = y2 >= 0;
+
+                    const c1x = toCanvasX(p1.t, xMin, xMax);
+                    const c1y = toCanvasY(p1.y);
+                    const c2x = toCanvasX(p2.t, xMin, xMax);
+                    const c2y = toCanvasY(p2.y);
+
+                    if (isPos1 === isPos2) {
+                        const color = isPos1 ? GREEN_FILL : RED_FILL;
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.moveTo(c1x, c1y);
+                        ctx.lineTo(c2x, c2y);
+                        ctx.lineTo(c2x, zeroY);
+                        ctx.lineTo(c1x, zeroY);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        const t = (0 - y1) / (y2 - y1);
+                        const xCross = lerp(p1.t, p2.t, t);
+                        const cCrossX = toCanvasX(xCross, xMin, xMax);
+
+                        ctx.fillStyle = isPos1 ? GREEN_FILL : RED_FILL;
+                        ctx.beginPath();
+                        ctx.moveTo(c1x, c1y);
+                        ctx.lineTo(cCrossX, zeroY);
+                        ctx.lineTo(cCrossX, zeroY);
+                        ctx.lineTo(c1x, zeroY);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = isPos2 ? GREEN_FILL : RED_FILL;
+                        ctx.beginPath();
+                        ctx.moveTo(cCrossX, zeroY);
+                        ctx.lineTo(c2x, c2y);
+                        ctx.lineTo(c2x, zeroY);
+                        ctx.lineTo(cCrossX, zeroY);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+
+                // ── axes ──
+                ctx.save();
+                ctx.strokeStyle = '#2c3f57';
+                ctx.lineWidth = 1.6;
+
+                const y0 = toCanvasY(0);
+                ctx.beginPath();
+                ctx.moveTo(PAD.left, y0);
+                ctx.lineTo(W - PAD.right + 8, y0);
+                ctx.stroke();
+
+                const xAxisY = H - PAD.bottom;
+                ctx.beginPath();
+                ctx.moveTo(PAD.left, xAxisY);
+                ctx.lineTo(W - PAD.right + 8, xAxisY);
+                ctx.stroke();
+
+                ctx.fillStyle = '#2c3f57';
+                ctx.beginPath();
+                ctx.moveTo(W - PAD.right + 8, y0);
+                ctx.lineTo(W - PAD.right, y0 - 4);
+                ctx.lineTo(W - PAD.right, y0 + 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(W - PAD.right + 8, xAxisY);
+                ctx.lineTo(W - PAD.right, xAxisY - 4);
+                ctx.lineTo(W - PAD.right, xAxisY + 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#1f3349';
+                ctx.font = '13px Inter, -apple-system, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText('time (steps)', W / 2, H - 16);
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('f(x)', PAD.left - 28, PAD.top + 4);
+
+                ctx.font = '11px Inter, -apple-system, sans-serif';
+                ctx.fillStyle = '#4d657f';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                let tick = firstTick;
+                while (tick <= xMax) {
+                    const cx = toCanvasX(tick, xMin, xMax);
+                    ctx.fillText(tick.toString(), cx, xAxisY + 6);
+                    tick += xTickStep;
+                }
+
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                for (let i = 0; i <= yTicks; i++) {
+                    const t = i / yTicks;
+                    const y = lerp(Y_MIN, Y_MAX, t);
+                    const cy = toCanvasY(y);
+                    ctx.fillText(y.toFixed(1), PAD.left - 10, cy);
+                }
+
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#4d657f';
+                ctx.font = '11px Inter, -apple-system, sans-serif';
+                const originX = toCanvasX(0, xMin, xMax);
+                if (originX >= PAD.left && originX <= W - PAD.right) {
+                    ctx.fillText('0', originX - 6, y0 + 6);
+                }
+                ctx.restore();
+
+                // ── LINE STROKES ──
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i];
+                    const p2 = pts[i + 1];
+                    const y1 = p1.y;
+                    const y2 = p2.y;
+                    const isPos1 = y1 >= 0;
+                    const isPos2 = y2 >= 0;
+
+                    const c1x = toCanvasX(p1.t, xMin, xMax);
+                    const c1y = toCanvasY(p1.y);
+                    const c2x = toCanvasX(p2.t, xMin, xMax);
+                    const c2y = toCanvasY(p2.y);
+
+                    if (isPos1 === isPos2) {
+                        ctx.strokeStyle = isPos1 ? GREEN : RED;
+                        ctx.lineWidth = 2.8;
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+                        ctx.shadowColor = isPos1 ? 'rgba(0,168,89,0.15)' : 'rgba(232,65,65,0.15)';
+                        ctx.shadowBlur = 6;
+                        ctx.beginPath();
+                        ctx.moveTo(c1x, c1y);
+                        ctx.lineTo(c2x, c2y);
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    } else {
+                        const t = (0 - y1) / (y2 - y1);
+                        const xCross = lerp(p1.t, p2.t, t);
+                        const cCrossX = toCanvasX(xCross, xMin, xMax);
+                        const cCrossY = zeroY;
+
+                        ctx.shadowBlur = 6;
+                        ctx.lineWidth = 2.8;
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+
+                        ctx.strokeStyle = isPos1 ? GREEN : RED;
+                        ctx.shadowColor = isPos1 ? 'rgba(0,168,89,0.15)' : 'rgba(232,65,65,0.15)';
+                        ctx.beginPath();
+                        ctx.moveTo(c1x, c1y);
+                        ctx.lineTo(cCrossX, cCrossY);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = isPos2 ? GREEN : RED;
+                        ctx.shadowColor = isPos2 ? 'rgba(0,168,89,0.15)' : 'rgba(232,65,65,0.15)';
+                        ctx.beginPath();
+                        ctx.moveTo(cCrossX, cCrossY);
+                        ctx.lineTo(c2x, c2y);
+                        ctx.stroke();
+
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                // ── POINTS ──
+                for (let i = 0; i < pts.length; i++) {
+                    const cx = toCanvasX(pts[i].t, xMin, xMax);
+                    const cy = toCanvasY(pts[i].y);
+                    const isHighlight = (i === highlightIndex);
+                    const isPos = pts[i].y >= 0;
+
+                    if (isHighlight) {
+                        ctx.save();
+                        const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22);
+                        const col = isPos ? GREEN : RED;
+                        grad.addColorStop(0, col + '60');
+                        grad.addColorStop(1, col + '00');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    const radius = isHighlight ? 7 : 4.5;
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = isPos ? GREEN : RED;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // ── annotation ──
+                if (pts.length > 0) {
+                    ctx.save();
+                    ctx.font = '12px Inter, -apple-system, sans-serif';
+                    ctx.fillStyle = '#2a4a6a';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    const last = pts[pts.length - 1];
+                    const cLast = toCanvasX(last.t, xMin, xMax);
+                    ctx.fillText('t=' + last.t, cLast - 4, PAD.top - 4);
+                    ctx.restore();
+                }
+            }
+
+            // ─── update UI stats ──────────────────────────────────────
+            function updateStats(pts) {
+                pointCountDisplay.textContent = pts.length;
+                if (pts.length === 0) {
+                    rangeDisplay.textContent = '—';
+                    sinRangeDisplay.textContent = '—';
+                    return;
+                }
+                const minT = pts[0].t;
+                const maxT = pts[pts.length - 1].t;
+                rangeDisplay.textContent = minT + ' … ' + maxT;
+
+                let minY = Infinity,
+                    maxY = -Infinity;
+                for (const p of pts) {
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                }
+                sinRangeDisplay.textContent = minY.toFixed(2) + ' … ' + maxY.toFixed(2);
+                updateCountDisplay.textContent = updateCounter;
+            }
+
+            // ─── render ──────────────────────────────────────────────
+            function render(highlightIndex = -1) {
+                draw(data, highlightIndex);
+                updateStats(data);
+                updateBiasDisplay();
+                updateTitle();
+            }
+
+            // ─── step forward ──────────────────────────────────────────
+            function stepForward() {
+                addPointAndTrim();
+                render(-1);
+            }
+
+            // ─── reset ─────────────────────────────────────────────────
+            function resetData() {
+                let max = parseInt(pointCountInput.value, 10);
+                if (isNaN(max) || max < 2) max = 2;
+                if (max > 120) max = 120;
+                pointCountInput.value = max;
+                maxPoints = max;
+
+                data = generateInitialData(maxPoints);
+                updateCounter = 0;
+                render(-1);
+            }
+
+            // ─── apply new equation ──────────────────────────────────
+            function applyEquation() {
+                const expr = equationInput.value.trim() || 'Math.sin(x)';
+                userEquation = expr;
+                evalFn = compileEquation(expr);
+                // Update dropdown to match if possible
+                const options = equationSelect.options;
+                let found = false;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === expr) {
+                        equationSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    // Add a temporary custom option? We'll just leave selection as is.
+                    // But we could set to a "Custom" placeholder, but we don't have one.
+                }
+                if (isPlaying) {
+                    clearInterval(autoIntervalId);
+                    autoIntervalId = null;
+                    isPlaying = false;
+                    playBtn.innerHTML = '<span class="icon">▶</span> Play';
+                    playBtn.className = 'btn success';
+                    statusBadge.textContent = '⏸ paused';
+                    statusBadge.className = 'status-badge';
+                }
+                resetData();
+            }
+
+            // ─── play / pause ──────────────────────────────────────────
+            function togglePlay() {
+                if (isPlaying) {
+                    clearInterval(autoIntervalId);
+                    autoIntervalId = null;
+                    isPlaying = false;
+                    playBtn.innerHTML = '<span class="icon">▶</span> Play';
+                    playBtn.className = 'btn success';
+                    statusBadge.textContent = '⏸ paused';
+                    statusBadge.className = 'status-badge';
+                } else {
+                    const delay = parseInt(intervalInput.value, 10);
+                    if (isNaN(delay) || delay < 100) {
+                        intervalInput.value = 1000;
+                        intervalDelay = 1000;
+                    } else {
+                        intervalDelay = Math.min(5000, Math.max(100, delay));
+                        intervalInput.value = intervalDelay;
+                    }
+                    if (data.length < 2) {
+                        resetData();
+                    }
+                    autoIntervalId = setInterval(stepForward, intervalDelay);
+                    isPlaying = true;
+                    playBtn.innerHTML = '<span class="icon">⏸</span> Pause';
+                    playBtn.className = 'btn danger';
+                    statusBadge.textContent = '▶ playing';
+                    statusBadge.className = 'status-badge playing';
+                }
+            }
+
+            // ─── tooltip ──────────────────────────────────────────────
+            let hoveredIndex = -1;
+
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+                return { mx, my };
+            }
+
+            function findClosestPoint(mx, my) {
+                if (data.length === 0) return -1;
+                const xMin = data[0].t;
+                const xMax = data[data.length - 1].t;
+                let bestIdx = -1;
+                let bestDist = Infinity;
+                const threshold = 32;
+                for (let i = 0; i < data.length; i++) {
+                    const cx = toCanvasX(data[i].t, xMin, xMax);
+                    const cy = toCanvasY(data[i].y);
+                    const dx = cx - mx;
+                    const dy = cy - my;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestIdx = i;
+                    }
+                }
+                return (bestDist < threshold) ? bestIdx : -1;
+            }
+
+            function showTooltip(e, idx) {
+                if (idx < 0 || idx >= data.length) {
+                    tooltip.classList.remove('visible');
+                    return;
+                }
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const p = data[idx];
+                const xMin = data[0].t;
+                const xMax = data[data.length - 1].t;
+                const cx = toCanvasX(p.t, xMin, xMax);
+                const cy = toCanvasY(p.y);
+
+                const cssX = (cx / scaleX) + rect.left;
+                const cssY = (cy / scaleY) + rect.top - 12;
+
+                const date = new Date();
+                const day = date.getDate();
+                const isEven = day % 2 === 0;
+                const biasNote = isEven ? '📈 even day' : '📉 odd day';
+
+                tooltip.innerHTML =
+                    `<span class="label">time</span> = ${p.t} &nbsp;·&nbsp; <span class="label">f(x)</span> = ${p.y.toFixed(4)} &nbsp;·&nbsp; <span class="label">bias</span> ${biasNote}`;
+                tooltip.style.left = cssX + 'px';
+                tooltip.style.top = (cssY - 32) + 'px';
+                tooltip.style.transform = 'translateX(-50%)';
+                tooltip.classList.add('visible');
+            }
+
+            // ─── canvas events ────────────────────────────────────────
+            canvas.addEventListener('mousemove', (e) => {
+                const { mx, my } = getMousePos(e);
+                const idx = findClosestPoint(mx, my);
+                if (idx !== hoveredIndex) {
+                    hoveredIndex = idx;
+                    render(idx);
+                }
+                showTooltip(e, idx);
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                hoveredIndex = -1;
+                render(-1);
+                tooltip.classList.remove('visible');
+            });
+
+            // ─── button events ────────────────────────────────────────
+            generateBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    clearInterval(autoIntervalId);
+                    autoIntervalId = null;
+                    isPlaying = false;
+                    playBtn.innerHTML = '<span class="icon">▶</span> Play';
+                    playBtn.className = 'btn success';
+                    statusBadge.textContent = '⏸ paused';
+                    statusBadge.className = 'status-badge';
+                }
+                resetData();
+            });
+
+            playBtn.addEventListener('click', togglePlay);
+
+            applyEqBtn.addEventListener('click', applyEquation);
+            equationInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    applyEquation();
+                }
+            });
+
+            // ─── Dropdown event ──────────────────────────────────────
+            equationSelect.addEventListener('change', function() {
+                const val = this.value;
+                equationInput.value = val;
+                applyEquation();
+            });
+
+            pointCountInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (isPlaying) togglePlay();
+                    resetData();
+                }
+            });
+
+            intervalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (isPlaying) {
+                        clearInterval(autoIntervalId);
+                        const delay = parseInt(intervalInput.value, 10);
+                        if (!isNaN(delay) && delay >= 100) {
+                            intervalDelay = Math.min(5000, Math.max(100, delay));
+                            intervalInput.value = intervalDelay;
+                            autoIntervalId = setInterval(stepForward, intervalDelay);
+                        } else {
+                            intervalInput.value = intervalDelay;
+                        }
+                    } else {
+                        const delay = parseInt(intervalInput.value, 10);
+                        if (!isNaN(delay) && delay >= 100) {
+                            intervalDelay = Math.min(5000, Math.max(100, delay));
+                            intervalInput.value = intervalDelay;
+                        } else {
+                            intervalInput.value = intervalDelay;
+                        }
+                    }
+                }
+            });
+
+            // ─── init ──────────────────────────────────────────────────
+            // compile default equation
+            evalFn = compileEquation(userEquation);
+            resetData();
+
+            // Ensure dropdown matches initial value
+            const initialVal = equationInput.value;
+            const options = equationSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === initialVal) {
+                    equationSelect.selectedIndex = i;
+                    break;
+                }
+            }
+
+        })();
+    </script>
+</body>
+</html>
