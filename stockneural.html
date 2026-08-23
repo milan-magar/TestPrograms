@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neural Network · Stock Dashboard</title>
+    <style>
+        /* ─── reset & base ─── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0b1120;
+            color: #e8edf5;
+            padding: 20px 24px 32px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        /* ─── top bar ─── */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-bottom: 28px;
+            background: #151f31;
+            padding: 12px 20px;
+            border-radius: 16px;
+            border: 1px solid #2a3a52;
+        }
+        .top-bar h1 {
+            font-size: 22px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .top-bar h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #8aa0bc;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .controls label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #8aa0bc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .controls input[type="number"] {
+            width: 60px;
+            padding: 4px 6px;
+            border: 1px solid #2a3a52;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            background: #0b1120;
+            color: #e8edf5;
+            outline: none;
+        }
+        .controls input:focus {
+            border-color: #4a8ed9;
+        }
+        .btn {
+            padding: 6px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn.primary {
+            background: #2b6bb0;
+            color: #fff;
+        }
+        .btn.primary:hover {
+            background: #1f5a9a;
+        }
+        .btn.success {
+            background: #2d8f5c;
+            color: #fff;
+        }
+        .btn.success:hover {
+            background: #237a4c;
+        }
+        .btn.danger {
+            background: #b64a4a;
+            color: #fff;
+        }
+        .btn.danger:hover {
+            background: #9e3d3d;
+        }
+        .btn.outline {
+            background: transparent;
+            color: #8aa0bc;
+            border: 1px solid #2a3a52;
+        }
+        .btn.outline:hover {
+            background: #1a253a;
+        }
+
+        /* ─── network container ─── */
+        .network-container {
+            display: flex;
+            flex-direction: row;
+            gap: 0px;
+            background: #0f1829;
+            border-radius: 24px;
+            border: 1px solid #1e2d44;
+            overflow: hidden;
+            padding: 20px 16px 20px 20px;
+            position: relative;
+            min-height: 600px;
+        }
+
+        /* ─── left: input layer ─── */
+        .input-layer {
+            flex: 0 0 38%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 2;
+            padding-right: 12px;
+        }
+        .neuron-input {
+            background: #141f31;
+            border-radius: 14px;
+            border: 1px solid #1e2d44;
+            padding: 10px 14px 8px;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .neuron-input:hover {
+            border-color: #3a5270;
+        }
+        .neuron-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .neuron-name {
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+        }
+        .neuron-price {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .neuron-change {
+            font-size: 13px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .neuron-change.up {
+            color: #00a859;
+        }
+        .neuron-change.down {
+            color: #e84141;
+        }
+        .neuron-spark {
+            width: 100%;
+            height: 44px;
+            margin: 2px 0 4px;
+            border-radius: 6px;
+            background: #0b1120;
+        }
+        .neuron-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #8aa0bc;
+        }
+        .neuron-decision {
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 1px 12px;
+            border-radius: 20px;
+        }
+        .neuron-decision.buy {
+            background: #1d6e46;
+            color: #a0e0c0;
+        }
+        .neuron-decision.sell {
+            background: #6e1d1d;
+            color: #e0a0a0;
+        }
+        .neuron-decision.hold {
+            background: #2a3a52;
+            color: #b0c4db;
+        }
+        .neuron-prob {
+            font-weight: 500;
+        }
+
+        /* ─── middle: connections (arrows) ─── */
+        .connection-layer {
+            flex: 1 1 auto;
+            position: relative;
+            z-index: 1;
+            min-width: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .connection-layer canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 12px;
+        }
+
+        /* ─── right: output layer ─── */
+        .output-layer {
+            flex: 0 0 32%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 12px;
+            z-index: 2;
+        }
+        .neuron-output {
+            background: linear-gradient(145deg, #162033, #0e1727);
+            border: 2px solid #2a4a6a;
+            border-radius: 28px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(43, 107, 176, 0.08);
+            transition: border-color 0.4s, box-shadow 0.4s;
+            position: relative;
+        }
+        .neuron-output.bullish {
+            border-color: #00a859;
+            box-shadow: 0 0 40px rgba(0, 168, 89, 0.15);
+        }
+        .neuron-output.bearish {
+            border-color: #e84141;
+            box-shadow: 0 0 40px rgba(232, 65, 65, 0.15);
+        }
+        .neuron-output.neutral {
+            border-color: #f39c12;
+            box-shadow: 0 0 40px rgba(243, 156, 18, 0.12);
+        }
+        .output-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #6a8aaa;
+            margin-bottom: 6px;
+        }
+        .output-consensus {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 4px 0 8px;
+        }
+        .output-consensus.bullish {
+            color: #00a859;
+        }
+        .output-consensus.bearish {
+            color: #e84141;
+        }
+        .output-consensus.neutral {
+            color: #f39c12;
+        }
+        .output-avgprob {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .output-avgprob small {
+            font-size: 18px;
+            font-weight: 400;
+            color: #6a8aaa;
+        }
+        .output-breakdown {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 12px 0 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .output-breakdown span.buy {
+            color: #00a859;
+        }
+        .output-breakdown span.sell {
+            color: #e84141;
+        }
+        .output-breakdown span.hold {
+            color: #b0c4db;
+        }
+
+        /* ─── responsiveness ─── */
+        @media (max-width: 1024px) {
+            .input-layer {
+                flex: 0 0 45%;
+            }
+            .output-layer {
+                flex: 0 0 35%;
+            }
+            .neuron-output {
+                padding: 20px 16px;
+            }
+            .output-avgprob {
+                font-size: 34px;
+            }
+        }
+        @media (max-width: 768px) {
+            .network-container {
+                flex-direction: column;
+                padding: 16px;
+                gap: 20px;
+            }
+            .input-layer {
+                flex: 1 1 auto;
+                padding-right: 0;
+            }
+            .connection-layer {
+                min-height: 60px;
+                min-width: unset;
+                width: 100%;
+                padding: 4px 0;
+            }
+            .connection-layer canvas {
+                height: 60px;
+                width: 100%;
+            }
+            .output-layer {
+                flex: 1 1 auto;
+                padding-left: 0;
+            }
+            .neuron-output {
+                max-width: 100%;
+            }
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .controls {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- top bar -->
+        <div class="top-bar">
+            <h1>
+                🧠 Neural Network
+                <small>7‑stock ensemble · live</small>
+            </h1>
+            <div class="controls">
+                <label>delay (ms)
+                    <input type="number" id="intervalInput" value="1200" min="200" max="5000" step="100" />
+                </label>
+                <button class="btn success" id="playBtn">▶ Play</button>
+                <button class="btn outline" id="resetBtn">⟳ Reset</button>
+            </div>
+        </div>
+
+        <!-- network -->
+        <div class="network-container" id="networkContainer">
+            <!-- input layer -->
+            <div class="input-layer" id="inputLayer"></div>
+
+            <!-- connection layer (arrows) -->
+            <div class="connection-layer" id="connectionLayer">
+                <canvas id="arrowCanvas"></canvas>
+            </div>
+
+            <!-- output layer -->
+            <div class="output-layer" id="outputLayer">
+                <div class="neuron-output" id="outputNeuron">
+                    <div class="output-label">Output Layer</div>
+                    <div class="output-consensus" id="outputConsensus">NEUTRAL</div>
+                    <div class="output-avgprob" id="outputAvgProb">— <small>avg</small></div>
+                    <div class="output-breakdown" id="outputBreakdown">
+                        <span class="buy">▲ 0</span>
+                        <span class="sell">▼ 0</span>
+                        <span class="hold">◆ 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ─── DOM refs ──────────────────────────────────────────────
+            const inputLayer = document.getElementById('inputLayer');
+            const outputNeuron = document.getElementById('outputNeuron');
+            const outputConsensus = document.getElementById('outputConsensus');
+            const outputAvgProb = document.getElementById('outputAvgProb');
+            const outputBreakdown = document.getElementById('outputBreakdown');
+            const playBtn = document.getElementById('playBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const intervalInput = document.getElementById('intervalInput');
+            const arrowCanvas = document.getElementById('arrowCanvas');
+            const ctx = arrowCanvas.getContext('2d');
+
+            // ─── constants ────────────────────────────────────────────
+            const NUM_STOCKS = 7;
+            const MAX_POINTS = 80;
+            const COLORS = ['#2b6bb0', '#e84141', '#00a859', '#f39c12', '#8e44ad', '#1abc9c', '#e67e22'];
+            const NAMES = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'META', 'NVDA'];
+
+            // ─── state ────────────────────────────────────────────────
+            let stocks = [];
+            let isPlaying = false;
+            let intervalId = null;
+            let updateCounter = 0;
+            let animFrameId = null;
+
+            // ─── helpers ──────────────────────────────────────────────
+            function rand(min, max) { return Math.random() * (max - min) + min; }
+
+            function randNormal() {
+                let u = 0,
+                    v = 0;
+                while (u === 0) u = Math.random();
+                while (v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+
+            function clamp(val, lo, hi) { return Math.min(Math.max(val, lo), hi); }
+
+            // ─── stock generation ─────────────────────────────────────
+            function initStocks() {
+                const newStocks = [];
+                for (let i = 0; i < NUM_STOCKS; i++) {
+                    const start = rand(80, 150);
+                    const drift = rand(-0.0003, 0.0008);
+                    const vol = rand(0.008, 0.025);
+                    const prices = [start];
+                    for (let j = 1; j < 50; j++) {
+                        const prev = prices[prices.length - 1];
+                        const ret = drift + vol * randNormal();
+                        prices.push(Math.max(prev * (1 + ret), 0.5));
+                    }
+                    newStocks.push({
+                        name: NAMES[i % NAMES.length] + (i + 1),
+                        color: COLORS[i % COLORS.length],
+                        prices: prices,
+                        drift: drift,
+                        volatility: vol,
+                    });
+                }
+                return newStocks;
+            }
+
+            // ─── compute stats ───────────────────────────────────────
+            function computeStats(prices) {
+                const n = Math.min(10, prices.length - 1);
+                if (n < 2) return { prob: 0.5, decision: 'hold' };
+                let ups = 0;
+                for (let i = prices.length - n; i < prices.length; i++) {
+                    if (prices[i] > prices[i - 1]) ups++;
+                }
+                const prob = clamp(ups / n, 0.05, 0.95);
+                let decision = 'hold';
+                if (prob > 0.6) decision = 'buy';
+                else if (prob < 0.4) decision = 'sell';
+                return { prob, decision };
+            }
+
+            // ─── step stocks ──────────────────────────────────────────
+            function stepStocks() {
+                for (const s of stocks) {
+                    const prev = s.prices[s.prices.length - 1];
+                    const ret = s.drift + s.volatility * randNormal();
+                    const newPrice = Math.max(prev * (1 + ret), 0.5);
+                    s.prices.push(newPrice);
+                    if (s.prices.length > MAX_POINTS) s.prices.shift();
+                }
+                updateCounter++;
+            }
+
+            // ─── draw sparkline ──────────────────────────────────────
+            function drawSparkline(canvas, prices, prob) {
+                const c = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                c.clearRect(0, 0, w, h);
+                if (!prices || prices.length < 2) return;
+
+                const min = Math.min(...prices);
+                const max = Math.max(...prices);
+                const range = max - min || 1;
+                const color = prob > 0.5 ? '#00a859' : '#e84141';
+
+                // fill
+                const grad = c.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, color + '50');
+                grad.addColorStop(1, color + '08');
+                c.fillStyle = grad;
+                c.beginPath();
+                for (let i = 0; i < prices.length; i++) {
+                    const x = (i / (prices.length - 1)) * w;
+                    const y = h - ((prices[i] - min) / range) * (h - 4) - 2;
+                    if (i === 0) c.moveTo(x, y);
+                    else c.lineTo(x, y);
+                }
+                c.lineTo(w, h);
+                c.lineTo(0, h);
+                c.closePath();
+                c.fill();
+
+                // line
+                c.beginPath();
+                c.strokeStyle = color;
+                c.lineWidth = 1.8;
+                for (let i = 0; i < prices.length; i++) {
+                    const x = (i / (prices.length - 1)) * w;
+                    const y = h - ((prices[i] - min) / range) * (h - 4) - 2;
+                    if (i === 0) c.moveTo(x, y);
+                    else c.lineTo(x, y);
+                }
+                c.stroke();
+
+                // last point
+                const lastX = w;
+                const lastY = h - ((prices[prices.length - 1] - min) / range) * (h - 4) - 2;
+                c.beginPath();
+                c.arc(lastX, lastY, 3, 0, 2 * Math.PI);
+                c.fillStyle = color;
+                c.fill();
+                c.strokeStyle = '#0b1120';
+                c.lineWidth = 1.2;
+                c.stroke();
+            }
+
+            // ─── render input neurons ────────────────────────────────
+            function renderInputs() {
+                inputLayer.innerHTML = '';
+                for (let i = 0; i < stocks.length; i++) {
+                    const s = stocks[i];
+                    const stats = computeStats(s.prices);
+                    const price = s.prices[s.prices.length - 1];
+                    const prev = s.prices[s.prices.length - 2] || price;
+                    const change = (price - prev) / prev;
+                    const changePct = (change * 100).toFixed(2);
+                    const changeCls = change >= 0 ? 'up' : 'down';
+                    const sign = change >= 0 ? '+' : '';
+                    const probPct = (stats.prob * 100).toFixed(0);
+
+                    const div = document.createElement('div');
+                    div.className = 'neuron-input';
+                    div.dataset.index = i;
+                    div.innerHTML = `
+                        <div class="neuron-header">
+                            <span class="neuron-name" style="color:${s.color}">${s.name}</span>
+                            <span>
+                                <span class="neuron-price">$${price.toFixed(2)}</span>
+                                <span class="neuron-change ${changeCls}">${sign}${changePct}%</span>
+                            </span>
+                        </div>
+                        <canvas class="neuron-spark" width="300" height="44"></canvas>
+                        <div class="neuron-footer">
+                            <span class="neuron-prob">⚡ ${probPct}%</span>
+                            <span class="neuron-decision ${stats.decision}">${stats.decision.toUpperCase()}</span>
+                        </div>
+                    `;
+                    inputLayer.appendChild(div);
+
+                    const canvas = div.querySelector('canvas');
+                    drawSparkline(canvas, s.prices, stats.prob);
+                }
+            }
+
+            // ─── render output neuron ────────────────────────────────
+            function renderOutput() {
+                const allStats = stocks.map(s => computeStats(s.prices));
+                const buyCount = allStats.filter(st => st.decision === 'buy').length;
+                const sellCount = allStats.filter(st => st.decision === 'sell').length;
+                const holdCount = NUM_STOCKS - buyCount - sellCount;
+                const avgProb = allStats.reduce((acc, st) => acc + st.prob, 0) / NUM_STOCKS;
+                const avgPct = (avgProb * 100).toFixed(1);
+
+                let consensus = 'neutral';
+                let cls = 'neutral';
+                if (avgProb > 0.6) { consensus = 'BULLISH';
+                    cls = 'bullish'; } else if (avgProb < 0.4) { consensus = 'BEARISH';
+                    cls = 'bearish'; } else { consensus = 'NEUTRAL';
+                    cls = 'neutral'; }
+
+                outputNeuron.className = `neuron-output ${cls}`;
+                outputConsensus.textContent = consensus;
+                outputConsensus.className = `output-consensus ${cls}`;
+                outputAvgProb.innerHTML = `${avgPct}% <small>avg</small>`;
+                outputBreakdown.innerHTML = `
+                    <span class="buy">▲ ${buyCount}</span>
+                    <span class="sell">▼ ${sellCount}</span>
+                    <span class="hold">◆ ${holdCount}</span>
+                `;
+            }
+
+            // ─── draw arrows (connections) ───────────────────────────
+            function drawArrows() {
+                const container = document.getElementById('networkContainer');
+                const rect = container.getBoundingClientRect();
+                const canvasRect = arrowCanvas.getBoundingClientRect();
+
+                // resize canvas to match container
+                const dpr = window.devicePixelRatio || 1;
+                const w = arrowCanvas.clientWidth;
+                const h = arrowCanvas.clientHeight;
+                if (arrowCanvas.width !== w * dpr || arrowCanvas.height !== h * dpr) {
+                    arrowCanvas.width = w * dpr;
+                    arrowCanvas.height = h * dpr;
+                    ctx.scale(dpr, dpr);
+                }
+
+                ctx.clearRect(0, 0, w, h);
+
+                const inputEls = inputLayer.querySelectorAll('.neuron-input');
+                const outputEl = document.getElementById('outputNeuron');
+                if (!inputEls.length || !outputEl) return;
+
+                const outRect = outputEl.getBoundingClientRect();
+                const outX = outRect.left - canvasRect.left + outRect.width / 2;
+                const outY = outRect.top - canvasRect.top + outRect.height / 2;
+
+                for (let i = 0; i < inputEls.length; i++) {
+                    const el = inputEls[i];
+                    const elRect = el.getBoundingClientRect();
+                    const inX = elRect.right - canvasRect.left;
+                    const inY = elRect.top - canvasRect.top + elRect.height / 2;
+
+                    const prob = computeStats(stocks[i].prices).prob;
+                    const isGreen = prob > 0.5;
+                    const color = isGreen ? '#00a859' : '#e84141';
+                    const alpha = Math.abs(prob - 0.5) * 2 + 0.2; // 0.2 ~ 1.2
+
+                    ctx.save();
+                    ctx.globalAlpha = Math.min(alpha, 1);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2.0 + Math.abs(prob - 0.5) * 3;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 8;
+
+                    ctx.beginPath();
+                    ctx.moveTo(inX, inY);
+                    const cp1x = inX + (outX - inX) * 0.4;
+                    const cp1y = inY;
+                    const cp2x = outX - (outX - inX) * 0.4;
+                    const cp2y = outY;
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, outX, outY);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // small arrowhead
+                    const angle = Math.atan2(outY - inY, outX - inX);
+                    const headLen = 8;
+                    const headX = outX - 10 * Math.cos(angle);
+                    const headY = outY - 10 * Math.sin(angle);
+                    ctx.save();
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = Math.min(alpha, 1);
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(outX, outY);
+                    ctx.lineTo(headX - headLen * 0.4 * Math.sin(angle), headY + headLen * 0.4 * Math.cos(angle));
+                    ctx.lineTo(headX + headLen * 0.4 * Math.sin(angle), headY - headLen * 0.4 * Math.cos(angle));
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // ─── full render ──────────────────────────────────────────
+            function renderAll() {
+                renderInputs();
+                renderOutput();
+                // draw arrows after DOM update
+                requestAnimationFrame(() => {
+                    drawArrows();
+                });
+            }
+
+            // ─── step ──────────────────────────────────────────────────
+            function step() {
+                stepStocks();
+                renderAll();
+            }
+
+            // ─── reset ─────────────────────────────────────────────────
+            function resetDashboard() {
+                stocks = initStocks();
+                updateCounter = 0;
+                renderAll();
+            }
+
+            // ─── play/pause ───────────────────────────────────────────
+            function togglePlay() {
+                if (isPlaying) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                    isPlaying = false;
+                    playBtn.textContent = '▶ Play';
+                    playBtn.className = 'btn success';
+                } else {
+                    const delay = parseInt(intervalInput.value, 10);
+                    if (isNaN(delay) || delay < 100) intervalInput.value = 1200;
+                    const d = parseInt(intervalInput.value, 10);
+                    intervalId = setInterval(step, d);
+                    isPlaying = true;
+                    playBtn.textContent = '⏸ Pause';
+                    playBtn.className = 'btn danger';
+                }
+            }
+
+            // ─── resize observer for arrows ──────────────────────────
+            function setupResizeObserver() {
+                const ro = new ResizeObserver(() => {
+                    if (!isPlaying) drawArrows();
+                    else drawArrows();
+                });
+                ro.observe(document.getElementById('networkContainer'));
+                window.addEventListener('resize', () => {
+                    if (!isPlaying) drawArrows();
+                });
+            }
+
+            // ─── event listeners ──────────────────────────────────────
+            playBtn.addEventListener('click', togglePlay);
+
+            resetBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                    isPlaying = false;
+                    playBtn.textContent = '▶ Play';
+                    playBtn.className = 'btn success';
+                }
+                resetDashboard();
+            });
+
+            intervalInput.addEventListener('change', () => {
+                if (isPlaying) {
+                    clearInterval(intervalId);
+                    const delay = parseInt(intervalInput.value, 10);
+                    if (!isNaN(delay) && delay >= 100) {
+                        intervalId = setInterval(step, delay);
+                    } else {
+                        intervalInput.value = 1200;
+                        intervalId = setInterval(step, 1200);
+                    }
+                }
+            });
+
+            // ─── init ──────────────────────────────────────────────────
+            resetDashboard();
+            setupResizeObserver();
+
+            // redraw arrows on scroll / layout shift
+            document.addEventListener('scroll', () => { if (!isPlaying) drawArrows(); });
+
+        })();
+    </script>
+</body>
+</html>
