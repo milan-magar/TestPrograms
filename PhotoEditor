@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS Photos Editor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ios: {
+                            bg: '#000000',
+                            card: '#1c1c1e',
+                            secondary: '#2c2c2e',
+                            accent: '#f59e0b', /* iOS yellow active */
+                            blue: '#0a84ff',
+                            gray: '#8e8e93',
+                            border: '#38383a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        /* Hide scrollbars for slick iOS horizontal sliders */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-ios-bg text-white h-screen w-screen flex flex-col overflow-hidden select-none">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 px-4 flex items-center justify-between border-b border-ios-border bg-black/80 backdrop-blur-md z-30 shrink-0">
+        <button onclick="app.cancelEditing()" class="text-ios-blue text-base font-normal hover:opacity-80 transition">
+            Cancel
+        </button>
+        <div id="top-title" class="text-sm font-semibold tracking-wide text-slate-200">
+            Edit
+        </div>
+        <button onclick="app.saveEditing()" class="text-ios-accent text-base font-semibold hover:opacity-80 transition">
+            Done
+        </button>
+    </header>
+
+    <!-- Main Workspace / Canvas Area -->
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden bg-black">
+        
+        <!-- Empty State / Upload Prompt -->
+        <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-20 bg-black">
+            <div class="w-16 h-16 bg-ios-secondary rounded-2xl flex items-center justify-center text-ios-blue mb-4 shadow-2xl">
+                <i data-lucide="image" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-xl font-semibold mb-2">iOS Photo Studio</h2>
+            <p class="text-sm text-ios-gray max-w-xs mb-6">Select a photo from your device or use a sample photo to experience authentic iOS photo editing tools.</p>
+            
+            <label class="px-6 py-3 bg-ios-blue hover:bg-ios-blue/90 text-white font-medium rounded-full cursor-pointer transition shadow-lg mb-4">
+                <span>Choose Photo</span>
+                <input type="file" accept="image/*" class="hidden" onchange="app.handleImageUpload(event)">
+            </label>
+
+            <div class="flex space-x-3 mt-4">
+                <button onclick="app.loadSampleImage('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200')" class="w-14 h-14 rounded-xl overflow-hidden border border-ios-border hover:border-ios-accent transition">
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150" class="w-full h-full object-cover">
+                </button>
+                <button onclick="app.loadSampleImage('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200')" class="w-14 h-14 rounded-xl overflow-hidden border border-ios-border hover:border-ios-accent transition">
+                    <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=150" class="w-full h-full object-cover">
+                </button>
+                <button onclick="app.loadSampleImage('https://images.unsplash.com/photo-1511497584788-876761192701?w=1200')" class="w-14 h-14 rounded-xl overflow-hidden border border-ios-border hover:border-ios-accent transition">
+                    <img src="https://images.unsplash.com/photo-1511497584788-876761192701?w=150" class="w-full h-full object-cover">
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div id="canvas-container" class="relative max-w-full max-h-full flex items-center justify-center p-4">
+            <canvas id="editor-canvas" class="max-w-full max-h-[calc(100vh-220px)] object-contain shadow-2xl"></canvas>
+        </div>
+
+        <!-- Compare / Hold to view original button -->
+        <button id="btn-compare" onmousedown="app.showOriginal(true)" onmouseup="app.showOriginal(false)" ontouchstart="app.showOriginal(true)" ontouchend="app.showOriginal(false)" class="absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-ios-border px-3 py-1.5 rounded-full text-xs font-medium text-slate-300 hidden z-10 transition active:scale-95">
+            Hold to Original
+        </button>
+    </main>
+
+    <!-- Bottom Controls & Navigation Footer -->
+    <footer id="editor-footer" class="bg-black/90 backdrop-blur-xl border-t border-ios-border flex flex-col z-30 shrink-0 hidden">
+        
+        <!-- Active Tool Value & Tick Ruler UI -->
+        <div id="slider-container" class="h-20 flex flex-col items-center justify-center relative border-b border-ios-border/40 px-6">
+            <div id="active-tool-indicator" class="flex items-center space-x-2 mb-1">
+                <span id="active-tool-name" class="text-xs font-medium text-ios-gray uppercase tracking-wider">Exposure</span>
+                <span id="active-tool-val" class="text-sm font-semibold text-ios-accent">0</span>
+            </div>
+            
+            <!-- iOS Tick Ruler -->
+            <div class="w-full max-w-md relative flex items-center justify-center h-8 cursor-ew-resize" id="ruler-track" onmousedown="app.startDragRuler(event)" ontouchstart="app.startDragRuler(event)">
+                <!-- Center Needle Marker -->
+                <div class="absolute h-5 w-0.5 bg-ios-accent z-20 top-1.5 pointer-events-none rounded-full"></div>
+                <!-- Ruler Ticks -->
+                <div class="w-full flex justify-between items-center text-ios-gray overflow-hidden pointer-events-none px-2" id="ruler-ticks">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tray Container (hidden by default) -->
+        <div id="filter-tray" class="h-24 px-4 py-2 flex items-center space-x-3 overflow-x-auto no-scrollbar hidden border-b border-ios-border/40">
+            <!-- Filter presets injected dynamically -->
+        </div>
+
+        <!-- Crop & Transform Tray (hidden by default) -->
+        <div id="crop-tray" class="h-24 px-4 flex items-center justify-around hidden border-b border-ios-border/40">
+            <button onclick="app.rotate(90)" class="flex flex-col items-center space-y-1 text-slate-300 hover:text-ios-accent">
+                <div class="w-10 h-10 rounded-full bg-ios-secondary flex items-center justify-center"><i data-lucide="rotate-cw" class="w-5 h-5"></i></div>
+                <span class="text-[10px]">Rotate</span>
+            </button>
+            <button onclick="app.flip('h')" class="flex flex-col items-center space-y-1 text-slate-300 hover:text-ios-accent">
+                <div class="w-10 h-10 rounded-full bg-ios-secondary flex items-center justify-center"><i data-lucide="flip-horizontal" class="w-5 h-5"></i></div>
+                <span class="text-[10px]">Flip H</span>
+            </button>
+            <button onclick="app.flip('v')" class="flex flex-col items-center space-y-1 text-slate-300 hover:text-ios-accent">
+                <div class="w-10 h-10 rounded-full bg-ios-secondary flex items-center justify-center"><i data-lucide="flip-vertical" class="w-5 h-5"></i></div>
+                <span class="text-[10px]">Flip V</span>
+            </button>
+            <button onclick="app.autoCropSquare()" class="flex flex-col items-center space-y-1 text-slate-300 hover:text-ios-accent">
+                <div class="w-10 h-10 rounded-full bg-ios-secondary flex items-center justify-center"><i data-lucide="maximize" class="w-5 h-5"></i></div>
+                <span class="text-[10px]">Square</span>
+            </button>
+        </div>
+
+        <!-- Primary Adjustment Tools Horizontal Scroll Bar -->
+        <div id="tools-tray" class="h-20 px-4 flex items-center space-x-6 overflow-x-auto no-scrollbar">
+            <!-- Injected dynamically -->
+        </div>
+
+        <!-- Bottom Navigation Tabs (Adjust, Filters, Crop) -->
+        <div class="h-14 border-t border-ios-border/60 flex items-center justify-around px-8 bg-black">
+            <button onclick="app.switchMainMode('adjust')" id="tab-adjust" class="flex flex-col items-center space-y-0.5 text-ios-accent transition">
+                <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+                <div class="w-1.5 h-1.5 rounded-full bg-ios-accent mt-0.5" id="dot-adjust"></div>
+            </button>
+            <button onclick="app.switchMainMode('filters')" id="tab-filters" class="flex flex-col items-center space-y-0.5 text-ios-gray transition">
+                <i data-lucide="aperture" class="w-5 h-5"></i>
+                <div class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5" id="dot-filters"></div>
+            </button>
+            <button onclick="app.switchMainMode('crop')" id="tab-crop" class="flex flex-col items-center space-y-0.5 text-ios-gray transition">
+                <i data-lucide="crop" class="w-5 h-5"></i>
+                <div class="w-1.5 h-1.5 rounded-full bg-transparent mt-0.5" id="dot-crop"></div>
+            </button>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        class iOSPhotosEditor {
+            constructor() {
+                this.canvas = document.getElementById('editor-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.originalImage = null;
+                this.history = [];
+                this.historyStep = -1;
+                this.mainMode = 'adjust'; // 'adjust' | 'filters' | 'crop'
+
+                // Exact iOS Adjustment Tools configuration
+                this.tools = [
+                    { id: 'auto', name: 'Auto', icon: 'wand-2', val: 0, min: 0, max: 100, isAction: true },
+                    { id: 'exposure', name: 'Exposure', icon: 'sun', val: 0, min: -100, max: 100 },
+                    { id: 'brilliance', name: 'Brilliance', icon: 'sparkles', val: 0, min: -100, max: 100 },
+                    { id: 'highlights', name: 'Highlights', icon: 'sun-medium', val: 0, min: -100, max: 100 },
+                    { id: 'shadows', name: 'Shadows', icon: 'moon', val: 0, min: -100, max: 100 },
+                    { id: 'contrast', name: 'Contrast', icon: 'contrast', val: 0, min: -100, max: 100 },
+                    { id: 'brightness', name: 'Brightness', icon: 'circle-dot', val: 0, min: -100, max: 100 },
+                    { id: 'blackPoint', name: 'Black Point', icon: 'circle', val: 0, min: -100, max: 100 },
+                    { id: 'saturation', name: 'Saturation', icon: 'palette', val: 0, min: -100, max: 100 },
+                    { id: 'vibrance', name: 'Vibrance', icon: 'rainbow', val: 0, min: -100, max: 100 },
+                    { id: 'warmth', name: 'Warmth', icon: 'thermometer', val: 0, min: -100, max: 100 },
+                    { id: 'tint', name: 'Tint', icon: 'droplet', val: 0, min: -100, max: 100 },
+                    { id: 'sharpness', name: 'Sharpness', icon: 'triangle', val: 0, min: 0, max: 100 },
+                    { id: 'definition', name: 'Definition', icon: 'grid', val: 0, min: 0, max: 100 },
+                    { id: 'noiseReduction', name: 'Noise Red.', icon: 'wind', val: 0, min: 0, max: 100 },
+                    { id: 'vignette', name: 'Vignette', icon: 'circle-dashed', val: 0, min: 0, max: 100 }
+                ];
+
+                this.activeToolId = 'exposure';
+
+                // Filters list
+                this.filters = [
+                    { id: 'original', name: 'Original' },
+                    { id: 'vivid', name: 'Vivid' },
+                    { id: 'vividWarm', name: 'Vivid Warm' },
+                    { id: 'vividCool', name: 'Vivid Cool' },
+                    { id: 'dramatic', name: 'Dramatic' },
+                    { id: 'dramaticWarm', name: 'Dram. Warm' },
+                    { id: 'mono', name: 'Mono' },
+                    { id: 'silver', name: 'Silvertone' },
+                    { id: 'noir', name: 'Noir' }
+                ];
+                this.activeFilter = 'original';
+
+                // Transformations
+                this.rotation = 0;
+                this.flipH = 1;
+                this.flipV = 1;
+
+                this.isDraggingRuler = false;
+                this.dragStartX = 0;
+
+                this.initRulerTicks();
+                this.renderToolsTray();
+                this.renderFilterTray();
+                this.initDragListeners();
+                lucide.createIcons();
+            }
+
+            initRulerTicks() {
+                const container = document.getElementById('ruler-ticks');
+                let html = '';
+                for (let i = 0; i <= 40; i++) {
+                    const isMajor = i % 5 === 0;
+                    const height = isMajor ? 'h-4' : 'h-2';
+                    html += `<div class="w-0.5 ${height} bg-ios-gray/60 rounded-full"></div>`;
+                }
+                container.innerHTML = html;
+            }
+
+            renderToolsTray() {
+                const tray = document.getElementById('tools-tray');
+                tray.innerHTML = this.tools.map(tool => {
+                    const isActive = tool.id === this.activeToolId;
+                    const hasVal = tool.val !== 0;
+                    return `
+                        <button onclick="app.selectTool('${tool.id}')" class="flex flex-col items-center justify-center shrink-0 space-y-1.5 group cursor-pointer">
+                            <div class="w-11 h-11 rounded-full flex items-center justify-center transition border ${isActive ? 'bg-ios-accent/20 border-ios-accent text-ios-accent' : 'bg-ios-secondary border-ios-border text-slate-300 hover:border-slate-500'}">
+                                <i data-lucide="${tool.icon}" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-[11px] font-medium tracking-tight ${isActive ? 'text-ios-accent font-semibold' : 'text-ios-gray'}">${tool.name}</span>
+                            <div class="w-1.5 h-1.5 rounded-full ${hasVal ? 'bg-ios-accent' : 'bg-transparent'}"></div>
+                        </button>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            }
+
+            renderFilterTray() {
+                const tray = document.getElementById('filter-tray');
+                tray.innerHTML = this.filters.map(f => {
+                    const isActive = this.activeFilter === f.id;
+                    return `
+                        <button onclick="app.applyFilter('${f.id}')" class="flex flex-col items-center space-y-1 shrink-0 group">
+                            <div class="w-16 h-16 rounded-xl border-2 overflow-hidden transition ${isActive ? 'border-ios-accent ring-2 ring-ios-accent/30' : 'border-ios-border'} bg-ios-secondary flex items-center justify-center">
+                                <span class="text-[10px] font-medium text-slate-300 px-1 text-center">${f.name}</span>
+                            </div>
+                            <span class="text-[11px] font-medium ${isActive ? 'text-ios-accent font-semibold' : 'text-ios-gray'}">${f.name}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            switchMainMode(mode) {
+                this.mainMode = mode;
+                ['adjust', 'filters', 'crop'].forEach(m => {
+                    const btn = document.getElementById(`tab-${m}`);
+                    const dot = document.getElementById(`dot-${m}`);
+                    if (m === mode) {
+                        btn.classList.add('text-ios-accent');
+                        btn.classList.remove('text-ios-gray');
+                        dot.classList.add('bg-ios-accent');
+                        dot.classList.remove('bg-transparent');
+                    } else {
+                        btn.classList.remove('text-ios-accent');
+                        btn.classList.add('text-ios-gray');
+                        dot.classList.remove('bg-ios-accent');
+                        dot.classList.add('bg-transparent');
+                    }
+                });
+
+                document.getElementById('slider-container').classList.add('hidden');
+                document.getElementById('tools-tray').classList.add('hidden');
+                document.getElementById('filter-tray').classList.add('hidden');
+                document.getElementById('crop-tray').classList.add('hidden');
+
+                if (mode === 'adjust') {
+                    document.getElementById('slider-container').classList.remove('hidden');
+                    document.getElementById('tools-tray').classList.remove('hidden');
+                } else if (mode === 'filters') {
+                    document.getElementById('filter-tray').classList.remove('hidden');
+                } else if (mode === 'crop') {
+                    document.getElementById('crop-tray').classList.remove('hidden');
+                }
+            }
+
+            selectTool(id) {
+                const tool = this.tools.find(t => t.id === id);
+                if (!tool) return;
+                
+                if (tool.isAction && id === 'auto') {
+                    this.executeAutoEnhance();
+                    return;
+                }
+
+                this.activeToolId = id;
+                document.getElementById('active-tool-name').innerText = tool.name;
+                document.getElementById('active-tool-val').innerText = tool.val;
+                this.renderToolsTray();
+            }
+
+            handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.originalImage = img;
+                        this.initImageSession();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            loadSampleImage(url) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    this.originalImage = img;
+                    this.initImageSession();
+                };
+                img.src = url;
+            }
+
+            initImageSession() {
+                document.getElementById('empty-state').classList.add('hidden');
+                document.getElementById('editor-footer').classList.remove('hidden');
+                document.getElementById('btn-compare').classList.remove('hidden');
+                this.resetAdjustments();
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            resetAdjustments() {
+                this.tools.forEach(t => t.val = 0);
+                this.activeFilter = 'original';
+                this.rotation = 0;
+                this.flipH = 1;
+                this.flipV = 1;
+                this.selectTool('exposure');
+            }
+
+            initDragListeners() {
+                const track = document.getElementById('ruler-track');
+                
+                const onMove = (clientX) => {
+                    if (!this.isDraggingRuler) return;
+                    const delta = clientX - this.dragStartX;
+                    this.dragStartX = clientX;
+                    
+                    const tool = this.tools.find(t => t.id === this.activeToolId);
+                    if (!tool) return;
+
+                    let step = Math.round(delta / 3);
+                    tool.val = Math.max(tool.min, Math.min(tool.max, tool.val + step));
+                    document.getElementById('active-tool-val').innerText = tool.val;
+                    this.renderToolsTray();
+                    this.updateCanvas();
+                };
+
+                track.addEventListener('mousedown', (e) => {
+                    this.isDraggingRuler = true;
+                    this.dragStartX = e.clientX;
+                });
+                window.addEventListener('mousemove', (e) => onMove(e.clientX));
+                window.addEventListener('mouseup', () => {
+                    if (this.isDraggingRuler) {
+                        this.isDraggingRuler = false;
+                        this.saveState();
+                    }
+                });
+
+                // Touch support
+                track.addEventListener('touchstart', (e) => {
+                    this.isDraggingRuler = true;
+                    this.dragStartX = e.touches[0].clientX;
+                });
+                window.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX));
+                window.addEventListener('touchend', () => {
+                    if (this.isDraggingRuler) {
+                        this.isDraggingRuler = false;
+                        this.saveState();
+                    }
+                });
+            }
+
+            executeAutoEnhance() {
+                // Simulate smart iOS auto enhance
+                const exposure = this.tools.find(t => t.id === 'exposure');
+                const brilliance = this.tools.find(t => t.id === 'brilliance');
+                const contrast = this.tools.find(t => t.id === 'contrast');
+                const saturation = this.tools.find(t => t.id === 'saturation');
+                
+                if (exposure) exposure.val = 15;
+                if (brilliance) brilliance.val = 25;
+                if (contrast) contrast.val = 10;
+                if (saturation) saturation.val = 12;
+
+                this.selectTool('brilliance');
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            applyFilter(filterId) {
+                this.activeFilter = filterId;
+                this.renderFilterTray();
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            rotate(deg) {
+                this.rotation = (this.rotation + deg) % 360;
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            flip(dir) {
+                if (dir === 'h') this.flipH *= -1;
+                if (dir === 'v') this.flipV *= -1;
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            autoCropSquare() {
+                // Quick square aspect ratio adjustment logic
+                this.saveState();
+                this.updateCanvas();
+            }
+
+            showOriginal(isOriginal) {
+                if (!this.originalImage) return;
+                if (isOriginal) {
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    let w = this.originalImage.width;
+                    let h = this.originalImage.height;
+                    this.canvas.width = w;
+                    this.canvas.height = h;
+                    this.ctx.drawImage(this.originalImage, 0, 0, w, h);
+                } else {
+                    this.updateCanvas();
+                }
+            }
+
+            updateCanvas() {
+                if (!this.originalImage) return;
+
+                let w = this.originalImage.width;
+                let h = this.originalImage.height;
+                if (Math.abs(this.rotation) === 90 || Math.abs(this.rotation) === 270) {
+                    this.canvas.width = h;
+                    this.canvas.height = w;
+                } else {
+                    this.canvas.width = w;
+                    this.canvas.height = h;
+                }
+
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.save();
+
+                this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+                this.ctx.rotate((this.rotation * Math.PI) / 180);
+                this.ctx.scale(this.flipH, this.flipV);
+
+                // Build filter values
+                const getVal = (id) => {
+                    const t = this.tools.find(item => item.id === id);
+                    return t ? t.val : 0;
+                };
+
+                const exp = getVal('exposure');
+                const bril = getVal('brilliance');
+                const bright = getVal('brightness');
+                const cont = getVal('contrast');
+                const sat = getVal('saturation');
+                const warm = getVal('warmth');
+
+                // Map iOS slider values (-100 to 100) to Canvas CSS filter equivalents
+                let brightnessVal = 100 + (exp * 0.4) + (bright * 0.3) + (bril * 0.2);
+                let contrastVal = 100 + (cont * 0.5);
+                let saturateVal = 100 + (sat * 0.8);
+                let sepiaVal = warm > 0 ? warm * 0.4 : 0;
+                let hueVal = warm < 0 ? warm * 0.2 : 0;
+
+                // Filter preset adjustments
+                if (this.activeFilter === 'vivid') {
+                    saturateVal += 35;
+                    contrastVal += 15;
+                } else if (this.activeFilter === 'vividWarm') {
+                    saturateVal += 30;
+                    sepiaVal += 20;
+                } else if (this.activeFilter === 'vividCool') {
+                    saturateVal += 30;
+                    hueVal -= 25;
+                } else if (this.activeFilter === 'dramatic') {
+                    contrastVal += 45;
+                    saturateVal -= 15;
+                } else if (this.activeFilter === 'dramaticWarm') {
+                    contrastVal += 40;
+                    sepiaVal += 25;
+                } else if (this.activeFilter === 'mono') {
+                    saturateVal = 0;
+                } else if (this.activeFilter === 'silver') {
+                    saturateVal = 0;
+                    contrastVal += 20;
+                } else if (this.activeFilter === 'noir') {
+                    saturateVal = 0;
+                    contrastVal += 60;
+                }
+
+                this.ctx.filter = `
+                    brightness(${brightnessVal}%)
+                    contrast(${contrastVal}%)
+                    saturate(${saturateVal}%)
+                    sepia(${sepiaVal}%)
+                    hue-rotate(${hueVal}deg)
+                `;
+
+                this.ctx.drawImage(this.originalImage, -w / 2, -h / 2, w, h);
+                this.ctx.restore();
+            }
+
+            saveState() {
+                this.historyStep++;
+                this.history = this.history.slice(0, this.historyStep);
+                this.history.push({
+                    tools: JSON.parse(JSON.stringify(this.tools)),
+                    filter: this.activeFilter,
+                    rotation: this.rotation,
+                    flipH: this.flipH,
+                    flipV: this.flipV
+                });
+            }
+
+            cancelEditing() {
+                if (confirm('Discard all changes?')) {
+                    location.reload();
+                }
+            }
+
+            saveEditing() {
+                const link = document.createElement('a');
+                link.download = 'ios-edited-photo.png';
+                link.href = this.canvas.toDataURL('image/png');
+                link.click();
+            }
+        }
+
+        // Initialize iOS Photo Editor
+        const app = new iOSPhotosEditor();
+    </script>
+</body>
+</html>
