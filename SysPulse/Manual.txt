@@ -1,0 +1,115 @@
+========================================================
+  SysPulse  -  System & Network Health Suite
+========================================================
+
+A modern dark-themed Windows system monitoring tool
+built with Java Swing.
+
+
+--------------------------------------------------------
+  FOLDER STRUCTURE
+--------------------------------------------------------
+
+SysPulse/
+|
+|-- SysPulse.java           (main entry point)
+|-- MainFrame.java          (window, tabs, top/status bar, auto-refresh)
+|-- Theme.java              (colors, fonts, styling helpers)
+|-- CommandExecutor.java    (ProcessBuilder + SwingWorker wrapper)
+|
+|-- OverviewPanel.java      (Tab 1: health cards + gauges)
+|-- ProcessPanel.java       (Tab 2: process table + taskkill)
+|-- HardwarePanel.java      (Tab 3: battery report + disks)
+|-- NetworkPanel.java       (Tab 4: adapters + connections)
+|
+|-- README.txt              (this file)
+
+
+--------------------------------------------------------
+  REQUIREMENTS
+--------------------------------------------------------
+
+- Windows OS (uses cmd.exe and Windows-only commands)
+- JDK 11 or newer installed
+- "java" and "javac" available on PATH
+
+Check with:
+    java -version
+    javac -version
+
+
+--------------------------------------------------------
+  HOW TO RUN
+--------------------------------------------------------
+
+1. Open a Command Prompt.
+
+2. Navigate to the project folder:
+       cd C:\Users\user\Desktop\Projects\SystemStatusDashboard\SysPulse
+
+3. Compile all source files:
+       javac *.java
+
+   This produces matching .class files next to each .java file.
+
+4. Run the application:
+       java SysPulse
+
+
+--------------------------------------------------------
+  OPTIONAL - COMPILE TO A SEPARATE "out" FOLDER
+--------------------------------------------------------
+
+If you prefer keeping .class files out of the source folder:
+
+    javac -d out *.java
+    java  -cp out SysPulse
+
+
+--------------------------------------------------------
+  BUILDING A RUNNABLE JAR (optional)
+--------------------------------------------------------
+
+    javac -d out *.java
+    jar cfe SysPulse.jar SysPulse -C out .
+    java -jar SysPulse.jar
+
+
+--------------------------------------------------------
+  TROUBLESHOOTING
+--------------------------------------------------------
+
+- "javac is not recognized"
+      Install a JDK (not just a JRE) and add its bin
+      folder to your PATH.
+
+- "error: method run in class SwingWorker..."
+      Ensure CommandExecutor.java contains the line:
+          return CommandExecutor.run(command);
+      inside doInBackground().
+
+- Battery report not generated
+      powercfg may require administrator privileges on
+      some systems. Right-click Command Prompt ->
+      "Run as administrator", then try again.
+
+- Blank or garbled command output
+      The console codepage may differ. Run once in the
+      same Command Prompt:
+          chcp 65001
+      before launching the app, or install an English
+      Windows language pack.
+
+
+--------------------------------------------------------
+  CONTROLS
+--------------------------------------------------------
+
+- Auto-Refresh toggle  : enable / pause periodic refresh
+- Interval dropdown    : 3s, 5s, 10s, 30s, 60s
+- Refresh Now          : immediately refresh the visible tab
+- Per-tab Refresh      : refresh just that tab
+- Terminate Process    : Tab 2 — kill the selected PID
+- Generate / Open Report : Tab 3 — battery health report
+
+========================================================
