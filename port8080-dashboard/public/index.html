@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Camera Stream with TensorFlow.js (Port 8080)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load TensorFlow.js and COCO-SSD Model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-mono min-h-screen p-6 flex flex-col items-center justify-center">
+    <div class="max-w-3xl w-full space-y-4">
+        <!-- Header -->
+        <header class="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-xl">
+            <div>
+                <h1 class="text-lg font-bold text-cyan-400">Object Detection (TensorFlow.js COCO-SSD)</h1>
+                <p class="text-xs text-slate-400" id="status">Loading TensorFlow.js model...</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse" id="dot"></span>
+                <span class="text-xs text-slate-400" id="stat-text">Loading</span>
+            </div>
+        </header>
+
+        <!-- Video Player & Canvas Overlay Display -->
+        <div class="bg-black rounded-2xl border border-slate-800 overflow-hidden aspect-video flex items-center justify-center relative shadow-2xl">
+            <img id="videoFeed" class="w-full h-full object-contain hidden" alt="Live Camera Stream">
+            <canvas id="overlay" class="absolute inset-0 pointer-events-none w-full h-full object-contain hidden"></canvas>
+            <div id="placeholder" class="text-slate-500 text-sm flex flex-col items-center space-y-2 text-center p-6">
+                <svg class="w-12 h-12 text-slate-700 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                <span>Waiting for your Java app to send frames to port 8080...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videoFeed = document.getElementById('videoFeed');
+        const overlay = document.getElementById('overlay');
+        const ctx = overlay.getContext('2d');
+        const placeholder = document.getElementById('placeholder');
+        const status = document.getElementById('status');
+        const statText = document.getElementById('stat-text');
+        const dot = document.getElementById('dot');
+
+        let model = null;
+        let isDetecting = false;
+        let latestImageUrl = null;
+
+        // 1. Load COCO-SSD Model
+        async function loadModel() {
+            try {
+                status.textContent = 'Downloading COCO-SSD model...';
+                model = await cocoSsd.load();
+                status.textContent = 'TF.js Model Loaded. Ready for stream.';
+                statText.textContent = 'Ready';
+                dot.className = 'w-3 h-3 rounded-full bg-emerald-500';
+            } catch (err) {
+                console.error('Model load error:', err);
+                status.textContent = 'Failed to load TF.js model';
+                statText.textContent = 'Error';
+                dot.className = 'w-3 h-3 rounded-full bg-rose-500';
+            }
+        }
+
+        loadModel();
+
+        // 2. Connect WebSocket to receive incoming frames from Node.js server
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}`);
+        ws.binaryType = 'arraybuffer';
+
+        ws.onmessage = async (event) => {
+            const blob = new Blob([event.data], { type: 'image/jpeg' });
+            if (latestImageUrl) URL.revokeObjectURL(latestImageUrl);
+            latestImageUrl = URL.createObjectURL(blob);
+
+            videoFeed.src = latestImageUrl;
+
+            if (videoFeed.classList.contains('hidden')) {
+                videoFeed.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+
+            status.textContent = 'Receiving real-time frames & running COCO-SSD';
+            statText.textContent = 'Live & Detecting';
+            dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse';
+
+            // Run object detection when model is loaded and image is ready
+            if (model && !isDetecting) {
+                isDetecting = true;
+                try {
+                    if (videoFeed.complete && videoFeed.naturalWidth > 0) {
+                        const predictions = await model.detect(videoFeed);
+                        drawBoundingBoxes(predictions);
+                    }
+                } catch (err) {
+                    console.error('Detection error:', err);
+                }
+                isDetecting = false;
+            }
+        };
+
+        // 3. Draw Bounding Boxes onto Canvas Overlay
+        function drawBoundingBoxes(predictions) {
+            overlay.width = videoFeed.clientWidth;
+            overlay.height = videoFeed.clientHeight;
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            const scaleX = overlay.width / videoFeed.naturalWidth;
+            const scaleY = overlay.height / videoFeed.naturalHeight;
+
+            predictions.forEach(prediction => {
+                const [x, y, width, height] = prediction.bbox;
+                const scaledX = x * scaleX;
+                const scaledY = y * scaleY;
+                const scaledWidth = width * scaleX;
+                const scaledHeight = height * scaleY;
+
+                // Draw bounding box outline
+                ctx.strokeStyle = '#06b6d4';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+                // Draw label background & text
+                ctx.fillStyle = '#06b6d4';
+                const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
+                const textWidth = ctx.measureText(text).width;
+                ctx.fillRect(scaledX, scaledY > 20 ? scaledY - 20 : 0, textWidth + 10, 20);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = '12px monospace';
+                ctx.fillText(text, scaledX + 5, scaledY > 20 ? scaledY - 6 : 14);
+            });
+        }
+    </script>
+</body>
+</html>
