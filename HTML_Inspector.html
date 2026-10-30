@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HTML Visual &amp; Source Synchronized Inspector</title>
+<style>
+/* ================================================================
+   THEME TOKENS  (VS Code "Dark+" inspired)
+   ================================================================ */
+:root {
+  --bg:         #0d1117;
+  --bg-2:       #161b22;
+  --bg-3:       #1c2230;
+  --panel:      #11161f;
+  --border:     #21262d;
+  --border-2:   #30363d;
+  --text:       #c9d1d9;
+  --text-dim:   #8b949e;
+  --text-faint: #6e7681;
+  
+  /* Golden Theme Colors */
+  --gold-hover:    #fbbf24;
+  --gold-selected: #f59e0b;
+  --gold-bg:       rgba(251, 191, 36, 0.12);
+  --gold-bg-sel:   rgba(245, 158, 11, 0.18);
+
+  /* syntax tokens */
+  --tk-tag:     #569cd6;
+  --tk-attr:    #9cdcfe;
+  --tk-val:     #ce9178;
+  --tk-punc:    #808080;
+  --tk-text:    #d4d4d4;
+  --tk-comment: #6a9955;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+}
+
+/* ================================================================
+   RESET / BASE
+   ================================================================ */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 var(--sans);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2a3444;
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: #3a4658; }
+
+/* drag & drop overlay */
+body.dropping::after {
+  content: "Drop an .html file to load it into the inspector";
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(13, 17, 23, 0.85);
+  color: var(--gold-hover);
+  font: 700 20px var(--sans);
+  letter-spacing: 0.03em;
+  border: 3px dashed var(--gold-hover);
+  z-index: 1000;
+  pointer-events: none;
+  text-align: center;
+  padding: 40px;
+}
+
+/* ================================================================
+   TOOLBAR
+   ================================================================ */
+.toolbar {
+  flex: 0 0 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #161c26, #11161f);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.brand .logo { color: var(--gold-hover); font-size: 16px; }
+.brand .ver {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+  border: 1px solid var(--border-2);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.toolbar .spacer { flex: 1 1 auto; }
+
+.stat {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.btn-tb {
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font: 600 12px var(--sans);
+  padding: 6px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-tb:hover { background: #242c3a; border-color: #3d4657; }
+.btn-tb:active { transform: translateY(1px); }
+
+.btn-tb.primary {
+  background: #1f6feb;
+  border-color: #2b7ff5;
+  color: #fff;
+}
+.btn-tb.primary:hover { background: #2b7ff5; }
+
+/* ================================================================
+   WORKSPACE / PANES / SPLITTERS
+   ================================================================ */
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.preview-pane {
+  flex: 0 0 var(--preview-size, 50%);
+  background: var(--bg);
+}
+
+.right-pane {
+  flex: 1 1 0;
+  min-width: 300px;
+  background: var(--panel);
+}
+
+.pane-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* Splitters */
+.splitter {
+  flex: 0 0 7px;
+  position: relative;
+  background: var(--bg);
+  cursor: col-resize;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  z-index: 6;
+  touch-action: none;
+}
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 3px;
+  height: 34px;
+  border-radius: 3px;
+  background: #2a3444;
+  transition: background 0.15s;
+}
+.splitter:hover::after,
+.splitter.dragging::after { background: var(--gold-hover); }
+
+body.resizing { user-select: none; }
+
+/* ================================================================
+   PANE HEADERS
+   ================================================================ */
+.pane-header {
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pane-header .hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ================================================================
+   SOURCE TOOLBAR  (open file / URL)
+   ================================================================ */
+.source-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font: 600 11.5px var(--sans);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-sm:hover { background: #242c3a; border-color: #3d4657; }
+.btn-sm:active { transform: translateY(1px); }
+
+.url-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #0b1017;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: var(--text);
+  font: 12px var(--mono);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.url-input:focus {
+  border-color: var(--gold-hover);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
+}
+.url-input::placeholder { color: var(--text-faint); }
+
+/* ================================================================
+   PREVIEW IFRAME
+   ================================================================ */
+.preview-frame-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  background: #0b0f14;
+}
+#preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+  display: block;
+}
+
+/* ================================================================
+   CODE INSPECTOR (Unified Editor with Word Wrap)
+   ================================================================ */
+.code-editor {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  background: #0b0f14;
+  overflow: hidden;
+}
+
+.gutter {
+  flex: 0 0 46px;
+  overflow: hidden;
+  padding: 10px 8px 10px 0;
+  text-align: right;
+  font: 12px/19px var(--mono);
+  color: #3d4657;
+  background: #0b0f14;
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+.gutter div { height: 19px; }
+
+.code-body {
+  flex: 1 1 auto;
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 1. Absolute highlight overlay for hover/selection */
+.highlight-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.hl-rect {
+  position: absolute;
+  background: var(--gold-bg);
+  border-left: 3px solid var(--gold-hover);
+  border-radius: 0;
+}
+.hl-rect.selected {
+  background: var(--gold-bg-sel);
+  border-left-color: var(--gold-selected);
+}
+/* Rounded corners only on the extreme top/bottom lines */
+.hl-rect.first { border-top-left-radius: 3px; }
+.hl-rect.last  { border-bottom-left-radius: 3px; }
+.hl-rect.single { border-radius: 3px; }
+
+/* 2. Syntax highlighting overlay behind the textarea */
+.code-highlight {
+  position: absolute;
+  inset: 0;
+  padding: 10px 14px;
+  overflow: hidden;
+  pointer-events: none;
+  font: 12px/19px var(--mono);
+  z-index: 1;
+}
+.hl-inner {
+  display: block; /* Use block so it matches textarea width */
+  white-space: pre-wrap;
+  word-break: break-all;
+  will-change: transform;
+}
+
+/* 3. The actual editable textarea */
+#codeInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  font: 12px/19px var(--mono);
+  padding: 10px 14px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: auto;
+  tab-size: 2;
+  caret-color: var(--gold-hover);
+  z-index: 2;
+}
+#codeInput::selection {
+  background: rgba(251, 191, 36, 0.3);
+  color: transparent;
+}
+
+/* Syntax highlighting colors */
+.tk-tag     { color: var(--tk-tag); }
+.tk-attr    { color: var(--tk-attr); }
+.tk-val     { color: var(--tk-val); }
+.tk-punc    { color: var(--tk-punc); }
+.tk-text    { color: var(--tk-text); }
+.tk-comment { color: var(--tk-comment); font-style: italic; }
+
+/* ================================================================
+   STATUS BAR
+   ================================================================ */
+.statusbar {
+  flex: 0 0 27px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#statusText { overflow: hidden; text-overflow: ellipsis; }
+#selectionInfo {
+  margin-left: auto;
+  color: var(--gold-hover);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+@media (max-width: 880px) {
+  .workspace { flex-direction: column; }
+  .preview-pane { flex: 0 0 45%; }
+  .right-pane { flex: 1 1 0; min-width: 0; }
+  .splitter { display: none; }
+  .toolbar .stat { display: none; }
+  .brand .ver { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ TOOLBAR ============================ -->
+<header class="toolbar">
+  <div class="brand">
+    <span class="logo">◧</span>
+    <span>HTML Inspector</span>
+    <span class="ver">unified</span>
+  </div>
+  <div class="spacer"></div>
+  <span class="stat" id="statCount">0 elements</span>
+  <button class="btn-tb" id="btnReset" type="button">Reset sample</button>
+  <button class="btn-tb primary" id="btnRender" type="button">▶ Render</button>
+</header>
+
+<!-- =========================== WORKSPACE =========================== -->
+<main class="workspace">
+
+  <!-- ---------------------- LEFT: PREVIEW ---------------------- -->
+  <section class="pane preview-pane">
+    <div class="pane-header">
+      Preview
+      <span class="hint">hover an element →</span>
+    </div>
+    <div class="preview-frame-wrap">
+      <iframe id="preview" title="Live HTML preview"></iframe>
+    </div>
+  </section>
+
+  <!-- ------------------------ SPLITTER ------------------------- -->
+  <div class="splitter" id="mainSplitter" title="Drag to resize"></div>
+
+  <!-- ------------------- RIGHT: UNIFIED INSPECTOR -------------- -->
+  <section class="pane right-pane">
+
+    <div class="pane-section">
+      <div class="pane-header">
+        Code Inspector
+        <span class="hint">HTML · Ctrl+↵ to render</span>
+      </div>
+
+      <!-- Load controls -->
+      <div class="source-toolbar">
+        <button class="btn-sm" id="btnOpenFile" type="button" title="Ctrl+O">
+          <span aria-hidden="true">📁</span> Open file
+        </button>
+        <input type="file" id="fileInput" hidden
+               accept=".html,.htm,.xhtml,text/html" />
+        <input class="url-input" id="urlInput" type="url" spellcheck="false"
+               placeholder="https://example.com/page.html  ·  or paste any URL and press Enter"
+               aria-label="URL to load" />
+        <button class="btn-sm" id="btnLoadUrl" type="button" title="Load URL">
+          <span aria-hidden="true">↗</span> Load
+        </button>
+      </div>
+
+      <div class="code-editor">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="code-body" id="codeBody">
+          <!-- Background blocks for whole-element highlighting -->
+          <div class="highlight-layer" id="highlightLayer" aria-hidden="true"></div>
+          
+          <!-- Syntax highlighting text -->
+          <div class="code-highlight" aria-hidden="true">
+            <div class="hl-inner" id="hlInner"></div>
+          </div>
+          
+          <!-- Editable text -->
+          <textarea id="codeInput" spellcheck="false" wrap="soft"
+                    aria-label="HTML source editor"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- =========================== STATUS BAR ========================== -->
+<footer class="statusbar">
+  <span id="statusText">Ready</span>
+  <span id="selectionInfo"></span>
+</footer>
+
+<script>
+/* ==================================================================
+   HTML VISUAL & SOURCE SYNCHRONIZED INSPECTOR
+   ================================================================== */
+(function () {
+  'use strict';
+
+  /* ================================================================
+     0. CONSTANTS & MEASUREMENTS
+     ================================================================ */
+  const RENDER_DELAY  = 300;    
+  const LINE_HEIGHT   = 19;     
+  const EDITOR_PAD_T  = 10;
+  const EDITOR_PAD_L  = 14;
+
+  const BASE_CSS = `
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #1f2328;
+      background: #ffffff;
+    }
+  `;
+
+  const INSPECTOR_CSS = `
+    [data-insp-hover] {
+      outline: 2px solid #fbbf24 !important;
+      outline-offset: -2px !important;
+      background-color: rgba(251, 191, 36, 0.14) !important;
+    }
+    [data-insp-selected] {
+      outline: 2px solid #f59e0b !important;
+      outline-offset: -2px !important;
+      background-color: rgba(245, 158, 11, 0.14) !important;
+    }
+  `;
+
+  const SAMPLE_SOURCE = `<div class="demo">
+  <header class="hero">
+    <span class="tag">live</span>
+    <h1>Hello, <em>inspector</em></h1>
+    <p>Hover any element — the code inspector follows along.</p>
+  </header>
+
+  <section class="cards">
+    <article class="card">
+      <h2>Sync engine</h2>
+      <p>Hover over this card to highlight the whole block.</p>
+      <ul>
+        <li>Nested elements</li>
+        <li>Attributes &amp; classes</li>
+      </ul>
+    </article>
+
+    <article class="card accent">
+      <h2>Try it</h2>
+      <label class="field">Name
+        <input type="text" placeholder="Ada Lovelace" />
+      </label>
+      <button class="btn" type="button">Primary action</button>
+    </article>
+  </section>
+
+  <!-- a comment node -->
+  <footer class="foot">
+    <span>Vanilla HTML, CSS &amp; JS</span>
+    <a href="#">A link</a>
+  </footer>
+</div>
+
+<style>
+  * { box-sizing: border-box; }
+  body {
+    padding: 26px;
+    background: radial-gradient(circle at 20% 0%, #16233a 0%, #0d1117 55%);
+    color: #dfe7f3;
+    min-height: 100vh;
+  }
+  .demo { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+  .hero {
+    position: relative;
+    border: 1px solid #212a3a;
+    border-radius: 16px;
+    padding: 22px 24px;
+    background: linear-gradient(180deg, #161d29, #121821);
+  }
+  .hero h1 { margin: 10px 0 6px; font-size: 27px; letter-spacing: -0.6px; }
+  .hero h1 em { font-style: normal; color: #4f9cf9; }
+  .hero p { margin: 0; color: #93a1b5; font-size: 14px; }
+  .tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: #4ade80; background: #0f2a1c; border: 1px solid #1f6f43;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .card {
+    background: #131a24; border: 1px solid #212a3a;
+    border-radius: 14px; padding: 18px;
+  }
+  .card.accent { border-color: #1f4a80; }
+  .card h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: 0.2px; }
+  .card p { margin: 0 0 10px; font-size: 13.5px; color: #93a1b5; line-height: 1.55; }
+  ul { margin: 0; padding-left: 18px; color: #93a1b5; font-size: 13.5px; line-height: 1.7; }
+  .field {
+    display: flex; flex-direction: column; gap: 5px;
+    font-size: 11.5px; color: #8b98ab; margin-bottom: 10px;
+  }
+  input[type="text"] {
+    background: #0b1017; border: 1px solid #2a3444; border-radius: 8px;
+    padding: 9px 11px; color: #dfe7f3; font-size: 13.5px;
+    outline: none; font-family: inherit;
+  }
+  .btn {
+    width: 100%; padding: 10px; border: 0; border-radius: 9px; cursor: pointer;
+    background: linear-gradient(180deg, #4f9cf9, #2f7ae0); color: #fff;
+    font-size: 13.5px; font-weight: 600; font-family: inherit;
+  }
+  .foot {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid #212a3a; padding-top: 14px;
+    font-size: 12px; color: #6b7a90;
+  }
+  a { color: #4f9cf9; text-decoration: none; }
+</style>`;
+
+  /* ================================================================
+     1. DOM REFERENCES & STATE
+     ================================================================ */
+  const $ = id => document.getElementById(id);
+
+  const els = {
+    preview:       $('preview'),
+    codeInput:     $('codeInput'),
+    gutter:        $('gutter'),
+    hlInner:       $('hlInner'),
+    highlightLayer:$('highlightLayer'),
+    codeBody:      $('codeBody'),
+    statusText:    $('statusText'),
+    selectionInfo: $('selectionInfo'),
+    statCount:     $('statCount'),
+    btnRender:     $('btnRender'),
+    btnReset:      $('btnReset'),
+    mainSplitter:  $('mainSplitter'),
+    workspace:     document.querySelector('.workspace'),
+    fileInput:     $('fileInput'),
+    btnOpenFile:   $('btnOpenFile'),
+    urlInput:      $('urlInput'),
+    btnLoadUrl:    $('btnLoadUrl')
+  };
+
+  let astMap = new Map();
+  let hoveredEl = null;
+  let selectedEl = null;
+  let renderTimer = null;
+  let isTyping = false;
+
+  /* ================================================================
+     2. UTILITIES
+     ================================================================ */
+  function setStatus(msg) {
+    els.statusText.textContent = msg;
+  }
+
+  /* ================================================================
+     3. RENDERING PIPELINE
+     ================================================================ */
+  function render(source) {
+    const frame = els.preview;
+    let doc;
+    try { doc = frame.contentDocument; } catch (err) { doc = null; }
+    if (!doc) return;
+
+    const started = performance.now();
+
+    try {
+      doc.open();
+      doc.write(source && source.trim() ? source : '<!---->');
+      doc.close();
+    } catch (err) {
+      setStatus('Render error: ' + err.message);
+      return;
+    }
+
+    const head = doc.head || doc.documentElement;
+    if (head) {
+      const base = doc.createElement('style');
+      base.setAttribute('data-insp-injected', '');
+      base.textContent = BASE_CSS;
+      head.insertBefore(base, head.firstChild);
+
+      const insp = doc.createElement('style');
+      insp.setAttribute('data-insp-injected', '');
+      insp.textContent = INSPECTOR_CSS;
+      head.appendChild(insp);
+    }
+
+    hoveredEl = null;
+    selectedEl = null;
+    els.selectionInfo.textContent = '';
+
+    // 1. Parse the source into AST ranges
+    const parsedRanges = parseSource(source);
+    astMap = new Map(parsedRanges.map(n => [n.id, n]));
+
+    // 2. Match the live DOM nodes to the AST ranges linearly
+    let state = { ptr: 0 };
+    if (doc.body) {
+      matchDOM(doc.body, parsedRanges, state);
+    }
+
+    // 3. Wire up listeners
+    doc.addEventListener('mouseover', onFrameOver, true);
+    doc.addEventListener('mouseout',  onFrameOut,  true);
+    doc.addEventListener('click',     onFrameClick, true);
+    doc.addEventListener('submit', e => e.preventDefault(), true);
+    if (doc.documentElement) {
+      doc.documentElement.addEventListener('mouseleave', () => applyHover(null));
+    }
+
+    const ms = Math.round(performance.now() - started);
+    const count = doc.querySelectorAll('[data-inspect-id]').length;
+    els.statCount.textContent = count + ' elements';
+    setStatus('Rendered ' + count + ' elements in ' + ms + ' ms');
+
+    updateEditorHighlight();
+  }
+
+  /* ================================================================
+     4. ROBUST HTML PARSER & LINEAR MATCHER
+     ================================================================ */
+  function parseSource(source) {
+    const ranges = [];
+    const stack = [];
+    let i = 0;
+    const len = source.length;
+    const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+    
+    while (i < len) {
+      if (source[i] === '<') {
+        if (source.startsWith('<!--', i)) {
+          const end = source.indexOf('-->', i);
+          i = end === -1 ? len : end + 3;
+        } else if (source.startsWith('</', i)) {
+          const end = source.indexOf('>', i);
+          if (end === -1) break;
+          const tagName = source.slice(i + 2, end).trim().toLowerCase();
+          i = end + 1;
+          
+          let foundIdx = -1;
+          for (let j = stack.length - 1; j >= 0; j--) {
+            if (stack[j].tagName === tagName) { foundIdx = j; break; }
+          }
+          if (foundIdx !== -1) {
+            while (stack.length > foundIdx) {
+              const node = stack.pop();
+              node.closeStart = i - (tagName.length + 3);
+              node.closeEnd = i;
+            }
+          }
+        } else if (source.startsWith('<!', i) || source.startsWith('<?', i)) {
+          const end = source.indexOf('>', i);
+          i = end === -1 ? len : end + 1;
+        } else {
+          let end = i + 1;
+          let quote = null;
+          while (end < len) {
+            const c = source[end];
+            if (quote) {
+              if (c === quote) quote = null;
+            } else if (c === '"' || c === "'") {
+              quote = c;
+            } else if (c === '>') {
+              break;
+            }
+            end++;
+          }
+          if (end >= len) break;
+          
+          let tagStr = source.slice(i + 1, end);
+          let isSelfClosing = tagStr.endsWith('/');
+          if (isSelfClosing) tagStr = tagStr.slice(0, -1).trim();
+          const tagName = tagStr.split(/\s/)[0].toLowerCase();
+          
+          const node = {
+            id: ranges.length,
+            tagName,
+            start: i,
+            end: end + 1,
+            closeStart: null,
+            closeEnd: null
+          };
+          ranges.push(node);
+          
+          if (isSelfClosing || VOID.has(tagName)) {
+            node.closeStart = end + 1;
+            node.closeEnd = end + 1;
+          } else {
+            stack.push(node);
+          }
+          i = end + 1;
+        }
+      } else {
+        i++;
+      }
+    }
+    
+    while (stack.length) {
+      const node = stack.pop();
+      node.closeStart = len;
+      node.closeEnd = len;
+    }
+    
+    return ranges;
+  }
+
+  function matchDOM(domNode, ranges, state) {
+    if (domNode.nodeType !== 1) return;
+    
+    // Skip injected styles
+    if (domNode.hasAttribute('data-insp-injected')) return;
+
+    const tagName = domNode.tagName.toLowerCase();
+    let matchIdx = -1;
+    
+    // Search forward in the parsed ranges for the matching opening tag
+    for (let i = state.ptr; i < ranges.length; i++) {
+      if (ranges[i].tagName === tagName) {
+        matchIdx = i;
+        break;
+      }
+    }
+    
+    if (matchIdx !== -1) {
+      const astNode = ranges[matchIdx];
+      domNode.setAttribute('data-inspect-id', 'e' + astNode.id);
+      domNode.setAttribute('data-ast-id', astNode.id);
+      state.ptr = matchIdx + 1;
+    }
+    
+    for (let child of domNode.childNodes) {
+      matchDOM(child, ranges, state);
+    }
+  }
+
+  /* ================================================================
+     5. SYNTAX HIGHLIGHTER
+     ================================================================ */
+  function highlightHTML(source) {
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let result = '';
+    let lastIndex = 0;
+    const regex = /(<!--[\s\S]*?-->)|(<\/?[a-zA-Z0-9\-]+)|(\s+[a-zA-Z0-9\-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)|(\/?>)|([^<]+)/g;
+    let match;
+
+    while ((match = regex.exec(source)) !== null) {
+      if (match.index > lastIndex) {
+        result += esc(source.slice(lastIndex, match.index));
+      }
+      const token = match[0];
+      let cls = '';
+      if (match[1]) cls = 'tk-comment';
+      else if (match[2]) cls = 'tk-tag';
+      else if (match[3]) cls = 'tk-attr';
+      else if (match[4]) cls = 'tk-punc';
+      else if (match[5]) cls = 'tk-text';
+
+      let tokenHtml = '';
+      if (match[3]) {
+        const attrMatch = /^(\s+)([a-zA-Z0-9\-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?$/.exec(token);
+        if (attrMatch) {
+          const space = attrMatch[1];
+          const name = attrMatch[2];
+          const val = attrMatch[3] || attrMatch[4] || attrMatch[5];
+          tokenHtml = esc(space) + `<span class="tk-attr">${esc(name)}</span>`;
+          if (val !== undefined) {
+            tokenHtml += `<span class="tk-punc">=</span><span class="tk-val">"${esc(val)}"</span>`;
+          }
+        } else {
+          tokenHtml = `<span class="${cls}">${esc(token)}</span>`;
+        }
+      } else {
+        tokenHtml = `<span class="${cls}">${esc(token)}</span>`;
+      }
+      result += tokenHtml;
+      lastIndex = match.index + token.length;
+    }
+    if (lastIndex < source.length) result += esc(source.slice(lastIndex));
+    return result;
+  }
+
+  /* ================================================================
+     6. HIGHLIGHT RENDERING (Native Browser Coordinates)
+     ================================================================ */
+  function updateEditorHighlight() {
+    const src = els.codeInput.value;
+    els.hlInner.innerHTML = highlightHTML(src);
+    
+    if (isTyping) {
+      els.highlightLayer.innerHTML = '';
+      return;
+    }
+    
+    updateHighlightRects();
+    syncHighlightScroll();
+  }
+
+  function findTextPosition(root, offset) {
+    let current = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node, lastNode = null;
+    while ((node = walker.nextNode())) {
+      const len = node.nodeValue.length;
+      if (current + len >= offset) {
+        return { node, offset: offset - current };
+      }
+      current += len;
+      lastNode = node;
+    }
+    if (lastNode) {
+      return { node: lastNode, offset: lastNode.nodeValue.length };
+    }
+    return { node: null, offset: 0 };
+  }
+
+  function getCharRect(pos, isEnd) {
+    if (!pos.node) return null;
+    const range = document.createRange();
+    let node = pos.node;
+    let offset = pos.offset;
+    
+    if (isEnd) {
+      if (offset === 0) {
+        // Find previous text node to get the character *before* the end offset
+        const walker = document.createTreeWalker(els.hlInner, NodeFilter.SHOW_TEXT);
+        let prev = null, n;
+        while ((n = walker.nextNode())) {
+          if (n === node) break;
+          prev = n;
+        }
+        if (prev) {
+          node = prev;
+          offset = node.nodeValue.length;
+        }
+      }
+      range.setStart(node, Math.max(0, offset - 1));
+      range.setEnd(node, offset);
+    } else {
+      range.setStart(node, offset);
+      range.setEnd(node, Math.min(node.nodeValue.length, offset + 1));
+    }
+    return range.getBoundingClientRect();
+  }
+
+  function updateHighlightRects() {
+    const layer = els.highlightLayer;
+    layer.innerHTML = '';
+    
+    const activeEl = selectedEl || hoveredEl;
+    if (!activeEl || !activeEl.isConnected) return;
+    
+    const astId = activeEl.getAttribute('data-ast-id');
+    if (astId === null) return;
+    
+    const astNode = astMap.get(parseInt(astId, 10));
+    if (!astNode) return;
+    
+    const isSelected = activeEl === selectedEl;
+    const start = astNode.start;
+    let end = astNode.closeEnd;
+    if (end === null || end === undefined) end = astNode.end;
+    
+    end = Math.min(end, els.codeInput.value.length);
+    if (start >= end) return;
+
+    const startPos = findTextPosition(els.hlInner, start);
+    const endPos = findTextPosition(els.hlInner, end);
+    
+    if (!startPos.node || !endPos.node) return;
+    
+    const startRect = getCharRect(startPos, false);
+    const endRect = getCharRect(endPos, true);
+    
+    if (!startRect || !endRect) return;
+    
+    const bodyRect = els.codeBody.getBoundingClientRect();
+    
+    // Coordinates are relative to codeBody, perfectly accounting for scrolling
+    const startX = startRect.left - bodyRect.left;
+    const startY = startRect.top - bodyRect.top;
+    const endX = endRect.right - bodyRect.left;
+    const endY = endRect.top - bodyRect.top;
+    
+    const colorCls = isSelected ? 'selected' : 'hover';
+    
+    // Check if start and end are on the same visual line
+    if (Math.abs(startY - endY) < 1) {
+      // Single line
+      addRect(layer, startX, startY, 5000, LINE_HEIGHT, colorCls + ' single');
+    } else {
+      const numMiddleLines = Math.round((endY - startY) / LINE_HEIGHT) - 1;
+      
+      // First line (from tag start to far right)
+      addRect(layer, startX, startY, 5000, LINE_HEIGHT, colorCls + ' first');
+      
+      // Middle lines (full width block)
+      if (numMiddleLines > 0) {
+        addRect(layer, EDITOR_PAD_L, startY + LINE_HEIGHT, 5000, numMiddleLines * LINE_HEIGHT, colorCls + ' middle');
+      }
+      
+      // Last line (from far left to tag end)
+      addRect(layer, EDITOR_PAD_L, endY, endX - EDITOR_PAD_L, LINE_HEIGHT, colorCls + ' last');
+    }
+  }
+
+  function addRect(layer, x, y, w, h, cls) {
+    if (w <= 0) return;
+    const div = document.createElement('div');
+    div.className = 'hl-rect ' + cls;
+    div.style.left = x + 'px';
+    div.style.top = y + 'px';
+    div.style.width = w + 'px';
+    div.style.height = h + 'px';
+    layer.appendChild(div);
+  }
+
+  function syncHighlightScroll() {
+    const ta = els.codeInput;
+    // Translate the syntax highlighter to match the textarea's scroll
+    els.hlInner.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
+    // Note: highlightLayer is intentionally NOT transformed, 
+    // because the absolute rects are already calculated relative to codeBody using getClientRects()
+  }
+
+  /* ================================================================
+     7. SCROLLING & GUTTER
+     ================================================================ */
+  function updateGutter() {
+    const lines = els.codeInput.value.split('\n').length;
+    let html = '';
+    for (let i = 1; i <= lines; i++) html += '<div>' + i + '</div>';
+    els.gutter.innerHTML = html;
+    els.gutter.scrollTop = els.codeInput.scrollTop;
+  }
+
+  function scrollToOffset(offset) {
+    const ta = els.codeInput;
+    const src = ta.value;
+    const before = src.slice(0, offset);
+    const line = (before.match(/\n/g) || []).length;
+    const lineStart = before.lastIndexOf('\n') + 1;
+    
+    let col = 0;
+    const lineStr = src.slice(lineStart, offset);
+    for (let i = 0; i < lineStr.length; i++) {
+      if (lineStr[i] === '\t') col += 2;
+      else col += 1;
+    }
+
+    // Approximate scroll using the character's visual line
+    const pos = findTextPosition(els.hlInner, offset);
+    if (pos.node) {
+      const rect = getCharRect(pos, false);
+      if (rect) {
+        const bodyRect = els.codeBody.getBoundingClientRect();
+        const targetY = rect.top - bodyRect.top + ta.scrollTop;
+        ta.scrollTop = Math.max(0, targetY - ta.clientHeight / 2 + LINE_HEIGHT / 2);
+      }
+    } else {
+      ta.scrollTop = Math.max(0, line * LINE_HEIGHT + EDITOR_PAD_T - ta.clientHeight / 2 + LINE_HEIGHT / 2);
+    }
+
+    // Rough horizontal scroll (less critical due to word wrap)
+    ta.scrollLeft = Math.max(0, col * 7.25 + EDITOR_PAD_L - ta.clientWidth / 2);
+
+    els.gutter.scrollTop = ta.scrollTop;
+    syncHighlightScroll();
+  }
+
+  /* ================================================================
+     8. INTERACTION LOGIC
+     ================================================================ */
+  function onFrameOver(e) {
+    const t = e.target;
+    if (!t || t.nodeType !== 1) return;
+    const el = t.closest('[data-ast-id]');
+    if (el === hoveredEl) return;
+    applyHover(el);
+  }
+
+  function onFrameOut(e) {
+    if (!e.relatedTarget) applyHover(null);
+  }
+
+  function onFrameClick(e) {
+    const t = e.target;
+    if (!t || t.nodeType !== 1) return;
+    if (t.closest('a[href]')) e.preventDefault();
+    const el = t.closest('[data-ast-id]');
+    selectElement(el === selectedEl ? null : el);
+  }
+
+  function applyHover(el) {
+    if (el === hoveredEl) return;
+    
+    if (hoveredEl && hoveredEl.isConnected) {
+      hoveredEl.removeAttribute('data-insp-hover');
+    }
+    
+    hoveredEl = el;
+    
+    if (el) {
+      el.setAttribute('data-insp-hover', '');
+      if (!isTyping) {
+        const astId = el.getAttribute('data-ast-id');
+        if (astId !== null) {
+          const astNode = astMap.get(parseInt(astId, 10));
+          if (astNode) scrollToOffset(astNode.start);
+        }
+      }
+    }
+    
+    updateEditorHighlight();
+  }
+
+  function selectElement(el) {
+    if (selectedEl && selectedEl !== el) {
+      selectedEl.removeAttribute('data-insp-selected');
+    }
+    selectedEl = el;
+    
+    if (el) {
+      el.setAttribute('data-insp-selected', '');
+      try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+      
+      const astId = el.getAttribute('data-ast-id');
+      if (astId !== null) {
+        const astNode = astMap.get(parseInt(astId, 10));
+        if (astNode) scrollToOffset(astNode.start);
+      }
+
+      const tag = el.tagName.toLowerCase();
+      const elId = el.id ? '#' + el.id : '';
+      const clsAttr = el.getAttribute('class');
+      const cls = clsAttr ? '.' + clsAttr.trim().split(/\s+/).join('.') : '';
+      const r = el.getBoundingClientRect();
+      els.selectionInfo.textContent =
+        '<' + tag + elId + cls + '>  ' + Math.round(r.width) + '×' + Math.round(r.height);
+    } else {
+      els.selectionInfo.textContent = '';
+    }
+    
+    updateEditorHighlight();
+  }
+
+  /* ================================================================
+     9. EDITOR EVENTS
+     ================================================================ */
+  function scheduleRender() {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(renderNow, RENDER_DELAY);
+  }
+
+  function renderNow() {
+    clearTimeout(renderTimer);
+    renderTimer = null;
+    render(els.codeInput.value);
+  }
+
+  els.codeInput.addEventListener('input', () => {
+    isTyping = true;
+    clearTimeout(renderTimer);
+    updateGutter();
+    updateEditorHighlight();
+    scheduleRender();
+  });
+
+  els.codeInput.addEventListener('scroll', () => {
+    els.gutter.scrollTop = els.codeInput.scrollTop;
+    syncHighlightScroll();
+  });
+
+  els.codeInput.addEventListener('blur', () => {
+    isTyping = false;
+    updateEditorHighlight();
+  });
+
+  els.codeInput.addEventListener('keydown', e => {
+    const ta = els.codeInput;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      const end   = ta.selectionEnd;
+      ta.value = ta.value.slice(0, start) + '  ' + ta.value.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      updateGutter();
+      updateEditorHighlight();
+      scheduleRender();
+      return;
+    }
+
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      renderNow();
+    }
+  });
+
+  /* ================================================================
+     10. SOURCE LOADING & UI ACTIONS
+     ================================================================ */
+  function setSource(text, label) {
+    els.codeInput.value = text;
+    els.codeInput.scrollTop  = 0;
+    els.codeInput.scrollLeft = 0;
+    els.gutter.scrollTop = 0;
+    updateGutter();
+    renderNow();
+    setStatus('Loaded ' + label + ' · ' + text.length.toLocaleString() + ' chars');
+  }
+
+  els.btnOpenFile.addEventListener('click', () => els.fileInput.click());
+  els.fileInput.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setSource(String(reader.result), 'file “' + file.name + '”');
+      reader.readAsText(file);
+    }
+    e.target.value = '';
+  });
+
+  els.btnLoadUrl.addEventListener('click', async () => {
+    let url = els.urlInput.value.trim();
+    if (!url) return;
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url;
+    setStatus('Fetching ' + url + ' …');
+    try {
+      const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setSource(await res.text(), url);
+    } catch (err) {
+      setStatus('Fetch error: ' + err.message + ' (Server may block CORS)');
+    }
+  });
+
+  els.urlInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); els.btnLoadUrl.click(); }
+  });
+
+  els.btnRender.addEventListener('click', renderNow);
+  els.btnReset.addEventListener('click', () => setSource(SAMPLE_SOURCE, 'sample'));
+
+  // Splitter
+  function makeSplitter(splitter, container, axis, min, max, onMove) {
+    let dragging = false;
+    splitter.addEventListener('pointerdown', e => {
+      dragging = true;
+      splitter.classList.add('dragging');
+      splitter.setPointerCapture(e.pointerId);
+      document.body.classList.add('resizing');
+      els.preview.style.pointerEvents = 'none';
+      e.preventDefault();
+    });
+    splitter.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const rect = container.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      let pct = axis === 'x' ? ((e.clientX - rect.left) / rect.width) * 100 : ((e.clientY - rect.top) / rect.height) * 100;
+      pct = Math.min(max, Math.max(min, pct));
+      onMove(pct);
+    });
+    const stop = () => {
+      if (!dragging) return;
+      dragging = false;
+      splitter.classList.remove('dragging');
+      document.body.classList.remove('resizing');
+      els.preview.style.pointerEvents = '';
+    };
+    splitter.addEventListener('pointerup', stop);
+    splitter.addEventListener('pointercancel', stop);
+  }
+
+  makeSplitter(els.mainSplitter, els.workspace, 'x', 20, 80, pct => {
+    document.documentElement.style.setProperty('--preview-size', pct.toFixed(2) + '%');
+  });
+
+  /* ================================================================
+     11. BOOTSTRAP
+     ================================================================ */
+  els.codeInput.value = SAMPLE_SOURCE;
+  updateGutter();
+  renderNow();
+})();
+</script>
+</body>
+</html>
