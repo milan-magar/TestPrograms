@@ -1,0 +1,36 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>App</title><style>
+
+    body { margin: 0; background: #111827; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+    .page-wrapper { position: absolute; display: none; justify-content: center; align-items: center; }
+    .page-wrapper.active { display: flex; }
+    .page { position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 8px; transform-origin: center; }
+    .page > * { position: absolute; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    @keyframes slideInRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  #comp_1 { position: absolute; left: 174px; top: 54px; width: 260px; height: 100px; boxSizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: none; }
+#comp_2 { position: absolute; left: 176px; top: 161px; width: 260px; height: 100px; boxSizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: none; }
+#comp_3 { position: absolute; left: 173px; top: 271px; width: 160px; height: 120px; boxSizing: border-box; object-fit: cover; border-radius: 6px; }
+#comp_4 { position: absolute; left: 173px; top: 403px; width: 160px; height: 120px; boxSizing: border-box; object-fit: cover; border-radius: 6px; }
+#comp_5 { position: absolute; left: 342px; top: 329px; width: 260px; height: 100px; boxSizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: none; }
+</style></head><body>
+<div id="page_1793532474917_wrapper" class="page-wrapper"><div id="page_1793532474917" class="page" style="width:1080px;height:720px;background:#ffffff;">
+<textarea id="comp_1" placeholder="Enter text..."></textarea>
+<textarea id="comp_2" placeholder="Enter text..."></textarea>
+<img id="comp_3" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120'%3E%3Crect width='160' height='120' fill='%23e5e7eb'/%3E%3Ctext x='80' y='60' font-family='sans-serif' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='central'%3EImage%3C/text%3E%3C/svg%3E" alt="Image">
+<img id="comp_4" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120'%3E%3Crect width='160' height='120' fill='%23e5e7eb'/%3E%3Ctext x='80' y='60' font-family='sans-serif' font-size='14' fill='%239ca3af' text-anchor='middle' dominant-baseline='central'%3EImage%3C/text%3E%3C/svg%3E" alt="Image">
+<textarea id="comp_5" placeholder="Enter text..."></textarea></div></div>
+
+<script>
+function fitScreen() {
+  const active_page_1793532474917 = document.querySelector('#page_1793532474917_wrapper.active .page');
+  if (active_page_1793532474917) {
+    const scale_page_1793532474917 = Math.min(window.innerWidth / 1080, window.innerHeight / 720);
+    active_page_1793532474917.style.transform = 'scale(' + scale_page_1793532474917 + ')';
+  }
+}
+window.addEventListener('resize', fitScreen);
+function showPage(id, transition) { document.querySelectorAll('.page-wrapper').forEach(p => p.classList.remove('active')); const wrapper = document.getElementById(id + '_wrapper'); if (wrapper) { wrapper.classList.add('active'); const page = wrapper.querySelector('.page'); page.style.animation = 'none'; page.offsetHeight; if (transition === 'fade') page.style.animation = 'fadeIn 0.3s ease'; if (transition === 'slide-left') page.style.animation = 'slideInLeft 0.3s ease'; if (transition === 'slide-right') page.style.animation = 'slideInRight 0.3s ease'; fitScreen(); } }
+showPage('page_1793532474917', 'none');
+
+</script></body></html>
