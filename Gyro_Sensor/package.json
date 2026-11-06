@@ -1,0 +1,15 @@
+{
+  "name": "motionsync-3d",
+  "version": "1.0.0",
+  "description": "Real-time phone motion sensor telemetry to 3D dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:https": "node server.js --https"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "selfsigned": "^2.4.1",
+    "socket.io": "^4.8.4"
+  }
+}
